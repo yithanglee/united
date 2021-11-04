@@ -24,23 +24,22 @@ defmodule UnitedWeb.Router do
     get("/login", LoginController, :index)
     post("/authenticate", LoginController, :authenticate)
     get("/logout", LoginController, :logout)
+    resources "/users", UserController
   end
-
 
   scope "/", UnitedWeb do
     pipe_through :browser
     get("/", LandingPageController, :index)
   end
 
-
-
   scope "/api", UnitedWeb do
     pipe_through :api
     get("/webhook", ApiController, :webhook)
     post("/webhook", ApiController, :webhook_post)
     delete("/webhook", ApiController, :webhook_delete)
+    get("/:model", ApiController, :datatable)
+    post("/:model", ApiController, :form_submission)
   end
-
 
   # Other scopes may use custom stacks.
   # scope "/api", UnitedWeb do

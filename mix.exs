@@ -46,6 +46,11 @@ defmodule United.MixProject do
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
+      {:ex_aws, "~> 2.0"},
+      {:ex_aws_s3, "~> 2.0"},
+      {:poison, "~> 3.0"},
+      {:hackney, "~> 1.9"},
+      {:sweet_xml, "~> 0.6.6"},
       {:blue_potion, "~> 0.1.2", override: true, git: "https://github.com/yithanglee/blue_potion"}
     ]
   end
