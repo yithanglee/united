@@ -1,11 +1,20 @@
-<div class="container">
-  <div class="row">
-    <div class="col-12 offset-lg-2 col-lg-8 text-center">
-      <h1>Things you can do here;</h1>
-      <ol>
-        <li>Upload your large files</li>
-        <li>Download your large files</li>
-      </ol>
-    </div>
-  </div>
+<div id="main-content">
+	
 </div>
+<script type="text/javascript">
+
+	document.addEventListener('keydown', function(event) {
+      if (event.ctrlKey && event.key === '.') {
+          repeatAction()
+      }
+  });
+
+  function repeatAction() {
+		$.ajax({url: "/html/landing.html"}).done((html) => {
+			$("#main-content").html(html)
+		})
+
+  }
+  repeatAction()
+
+</script>

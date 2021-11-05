@@ -1,0 +1,153 @@
+<div class="container">
+  <div class="row">
+    <div class="col-12 offset-lg-2 col-lg-8 text-center">
+      Personal blog space to showcase my work.
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12" id="content">
+      
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+var list = [{
+    icon: "fa fa-2x fa-list",
+    title: "Blogs",
+    active: true,
+    content: `<div id="tab1"></div>`,
+},{
+    icon: "fa fa-2x fa-images",
+    title: "Images",
+    active: true,
+    content: `<div id="tab2"></div>`,
+}]
+var random_id = makeid(4);
+var blogs = new phoenixModel({
+    moduleName: "Blog",
+    link: "Blog",
+    tableSelector: "#" + random_id,
+    columns: [{
+        data: "id",
+        label: "id"
+    }, {
+        data: "author",
+        label: "Author"
+    }, {
+        data: "title",
+        label: "Title"
+    }, {
+        data: "id",
+        label: "Action"
+    }],
+    customCols: [
+        'title',
+        'author', {
+            label: 'body',
+            editor: true
+        },
+        'excerpt',
+        'id',
+    ],
+    buttons: [{
+        buttonType: "grouped",
+        name: "Manage",
+        color: "outline-warning",
+        buttonList: [{
+                name: "Edit",
+                iconName: "fa fa-edit",
+                color: "btn-sm btn-outline-warning",
+                onClickFunction: editData,
+                fnParams: {
+                    drawFn: enlargeModal,
+                    customCols: [{
+                        name: 'General',
+                        list: ['id', 'title', 'author', 'excerpt']
+                    }, {
+                        name: 'Others',
+                        list: [
+                        {label: 'featured_image', alias: true},
+                        {
+                            editor: true,
+                            label: 'body'
+                        }]
+                    }]
+                }
+            },
+
+            {
+                name: "Delete",
+                iconName: "fa fa-trash",
+                color: "outline-danger",
+                onClickFunction: deleteData,
+                fnParams: {}
+            }
+        ],
+        fnParams: {}
+    }, ]
+})
+App.Page.tablist("#content", list)
+App.Page.createTable(random_id, "#tab1")
+populateTable(blogs)
+
+var random_id = makeid(4);
+var medias = new phoenixModel({
+    moduleName: "StoredMedia",
+    link: "StoredMedia",
+    tableSelector: "#" + random_id,
+    columns: [{
+        data: "id",
+        label: "id"
+    }, {
+        data: "name",
+        label: "File Name"
+    }, {
+        data: "s3_url",
+        label: "Url"
+    }, {
+        data: "id",
+        label: "Action"
+    }],
+    customCols: [
+        'name',
+        {label: 's3_url', upload: true},
+        
+        'id',
+    ],
+    buttons: [{
+        buttonType: "grouped",
+        name: "Manage",
+        color: "outline-warning",
+        buttonList: [{
+                name: "Edit",
+                iconName: "fa fa-edit",
+                color: "btn-sm btn-outline-warning",
+                onClickFunction: editData,
+                fnParams: {
+                   
+                    customCols: [{
+                        name: 'General',
+                        list: ['id', 'name']
+                    }, {
+                        name: 'Others',
+                        list: ['f_size', 'f_extension', 's3_url']
+                    }]
+                }
+            },
+
+            {
+                name: "Delete",
+                iconName: "fa fa-trash",
+                color: "outline-danger",
+                onClickFunction: deleteData,
+                fnParams: {}
+            }
+        ],
+        fnParams: {}
+    }, ]
+})
+
+App.Page.createTable(random_id, "#tab2")
+populateTable(medias)
+
+</script>

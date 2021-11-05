@@ -12,20 +12,18 @@ use Mix.Config
 # config :united, UnitedWeb.Endpoint,
 #   url: [host: "example.com", port: 80],
 #   cache_static_manifest: "priv/static/cache_manifest.json"
-config :instello, UnitedWeb.Endpoint,
+config :united, UnitedWeb.Endpoint,
   url: [host: "damienslab.ga", port: 5292],
   http: [port: 5292],
   force_ssl: [hsts: true],
   https: [
     port: 5293,
-    otp_app: :instello,
+    otp_app: :united,
     keyfile: "/etc/letsencrypt/live/damienslab.ga/privkey.pem",
     cacertfile: "/etc/letsencrypt/live/damienslab.ga/fullchain.pem",
     certfile: "/etc/letsencrypt/live/damienslab.ga/cert.pem"
   ],
   check_origin: ["https://damienslab.ga", "https://www.damienslab.ga", "http://damienslab.ga"]
-
-
 
 # Do not print debug messages in production
 config :logger, level: :info

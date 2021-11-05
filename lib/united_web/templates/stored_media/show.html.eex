@@ -1,0 +1,33 @@
+<h1>Show Stored media</h1>
+
+<ul>
+
+  <li>
+    <strong>Name:</strong>
+    <%= @stored_media.name %>
+  </li>
+
+  <li>
+    <strong>S3 url:</strong>
+    <%= @stored_media.s3_url %>
+  </li>
+
+  <li>
+    <strong>Size:</strong>
+    <%= @stored_media.size %>
+  </li>
+
+  <li>
+    <strong>F type:</strong>
+    <%= @stored_media.f_type %>
+  </li>
+
+  <li>
+    <strong>F extension:</strong>
+    <%= @stored_media.f_extension %>
+  </li>
+
+</ul>
+
+<span><%= link "Edit", to: Routes.stored_media_path(@conn, :edit, @stored_media) %></span>
+<span><%= link "Back", to: Routes.stored_media_path(@conn, :index) %></span>

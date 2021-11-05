@@ -62,7 +62,7 @@ defmodule UnitedWeb.ApiController do
       end
 
     {result, _values} =
-      Code.eval_string(dynamic_code, params: Map.get(params, model) |> BluePotion.upload_file())
+      Code.eval_string(dynamic_code, params: Map.get(params, model) |> United.upload_file())
 
     IO.inspect(result)
 
@@ -70,7 +70,7 @@ defmodule UnitedWeb.ApiController do
       {:ok, item} ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(200, Jason.encode!(Utility.s_to_map(item)))
+        |> send_resp(200, Jason.encode!(BluePotion.s_to_map(item)))
 
       {:error, %Ecto.Changeset{} = changeset} ->
         errors = changeset.errors |> Keyword.keys()
@@ -100,7 +100,7 @@ defmodule UnitedWeb.ApiController do
     json =
       BluePotion.post_process_datatable(
         params,
-        Module.concat(["Materialize", "Settings", model]),
+        Module.concat(["United", "Settings", model]),
         preloads
       )
 
@@ -112,6 +112,9 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "recent_blogs" ->
+          United.Settings.list_recent_blogs() |> Enum.map(&BluePotion.s_to_map(&1))
+
         "gen_inputs" ->
           BluePotion.test_module(params["module"])
 

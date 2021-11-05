@@ -51,6 +51,9 @@ defmodule United.MixProject do
       {:poison, "~> 3.0"},
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.6.6"},
+      {:distillery, "~> 2.1"},
+      {:httpoison, "~> 1.8"},
+      {:timex, "~> 3.0"},
       {:blue_potion, "~> 0.1.2", override: true, git: "https://github.com/yithanglee/blue_potion"}
     ]
   end

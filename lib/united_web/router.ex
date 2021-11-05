@@ -13,8 +13,13 @@ defmodule UnitedWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :frontend do
+    plug(:put_layout, {UnitedWeb.LayoutView, :frontend})
+    # plug(Materialize.Authorization)
+  end
+
   scope "/", UnitedWeb do
-    pipe_through :browser
+    pipe_through [:browser, :frontend]
 
     get "/", PageController, :index
   end
@@ -25,6 +30,8 @@ defmodule UnitedWeb.Router do
     post("/authenticate", LoginController, :authenticate)
     get("/logout", LoginController, :logout)
     resources "/users", UserController
+    resources "/blogs", BlogController
+    resources "/stored_medias", StoredMediaController
   end
 
   scope "/", UnitedWeb do

@@ -16,7 +16,7 @@ config :united, United.Repo,
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :united, UnitedWeb.Endpoint,
-  http: [port: 4000],
+  http: [port: 4009],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
