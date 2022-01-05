@@ -257,4 +257,266 @@ defmodule United.SettingsTest do
       assert %Ecto.Changeset{} = Settings.change_stored_media(stored_media)
     end
   end
+
+  describe "shops" do
+    alias United.Settings.Shop
+
+    @valid_attrs %{address: "some address", description: "some description", email: "some email", img_url: "some img_url", name: "some name", phone: "some phone"}
+    @update_attrs %{address: "some updated address", description: "some updated description", email: "some updated email", img_url: "some updated img_url", name: "some updated name", phone: "some updated phone"}
+    @invalid_attrs %{address: nil, description: nil, email: nil, img_url: nil, name: nil, phone: nil}
+
+    def shop_fixture(attrs \\ %{}) do
+      {:ok, shop} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_shop()
+
+      shop
+    end
+
+    test "list_shops/0 returns all shops" do
+      shop = shop_fixture()
+      assert Settings.list_shops() == [shop]
+    end
+
+    test "get_shop!/1 returns the shop with given id" do
+      shop = shop_fixture()
+      assert Settings.get_shop!(shop.id) == shop
+    end
+
+    test "create_shop/1 with valid data creates a shop" do
+      assert {:ok, %Shop{} = shop} = Settings.create_shop(@valid_attrs)
+      assert shop.address == "some address"
+      assert shop.description == "some description"
+      assert shop.email == "some email"
+      assert shop.img_url == "some img_url"
+      assert shop.name == "some name"
+      assert shop.phone == "some phone"
+    end
+
+    test "create_shop/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_shop(@invalid_attrs)
+    end
+
+    test "update_shop/2 with valid data updates the shop" do
+      shop = shop_fixture()
+      assert {:ok, %Shop{} = shop} = Settings.update_shop(shop, @update_attrs)
+      assert shop.address == "some updated address"
+      assert shop.description == "some updated description"
+      assert shop.email == "some updated email"
+      assert shop.img_url == "some updated img_url"
+      assert shop.name == "some updated name"
+      assert shop.phone == "some updated phone"
+    end
+
+    test "update_shop/2 with invalid data returns error changeset" do
+      shop = shop_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_shop(shop, @invalid_attrs)
+      assert shop == Settings.get_shop!(shop.id)
+    end
+
+    test "delete_shop/1 deletes the shop" do
+      shop = shop_fixture()
+      assert {:ok, %Shop{}} = Settings.delete_shop(shop)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_shop!(shop.id) end
+    end
+
+    test "change_shop/1 returns a shop changeset" do
+      shop = shop_fixture()
+      assert %Ecto.Changeset{} = Settings.change_shop(shop)
+    end
+  end
+
+  describe "shop_products" do
+    alias United.Settings.ShopProduct
+
+    @valid_attrs %{cost_price: 120.5, long_desc: "some long_desc", name: "some name", promo_price: 120.5, retail_price: 120.5, shop_id: 42, short_desc: "some short_desc"}
+    @update_attrs %{cost_price: 456.7, long_desc: "some updated long_desc", name: "some updated name", promo_price: 456.7, retail_price: 456.7, shop_id: 43, short_desc: "some updated short_desc"}
+    @invalid_attrs %{cost_price: nil, long_desc: nil, name: nil, promo_price: nil, retail_price: nil, shop_id: nil, short_desc: nil}
+
+    def shop_product_fixture(attrs \\ %{}) do
+      {:ok, shop_product} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_shop_product()
+
+      shop_product
+    end
+
+    test "list_shop_products/0 returns all shop_products" do
+      shop_product = shop_product_fixture()
+      assert Settings.list_shop_products() == [shop_product]
+    end
+
+    test "get_shop_product!/1 returns the shop_product with given id" do
+      shop_product = shop_product_fixture()
+      assert Settings.get_shop_product!(shop_product.id) == shop_product
+    end
+
+    test "create_shop_product/1 with valid data creates a shop_product" do
+      assert {:ok, %ShopProduct{} = shop_product} = Settings.create_shop_product(@valid_attrs)
+      assert shop_product.cost_price == 120.5
+      assert shop_product.long_desc == "some long_desc"
+      assert shop_product.name == "some name"
+      assert shop_product.promo_price == 120.5
+      assert shop_product.retail_price == 120.5
+      assert shop_product.shop_id == 42
+      assert shop_product.short_desc == "some short_desc"
+    end
+
+    test "create_shop_product/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_shop_product(@invalid_attrs)
+    end
+
+    test "update_shop_product/2 with valid data updates the shop_product" do
+      shop_product = shop_product_fixture()
+      assert {:ok, %ShopProduct{} = shop_product} = Settings.update_shop_product(shop_product, @update_attrs)
+      assert shop_product.cost_price == 456.7
+      assert shop_product.long_desc == "some updated long_desc"
+      assert shop_product.name == "some updated name"
+      assert shop_product.promo_price == 456.7
+      assert shop_product.retail_price == 456.7
+      assert shop_product.shop_id == 43
+      assert shop_product.short_desc == "some updated short_desc"
+    end
+
+    test "update_shop_product/2 with invalid data returns error changeset" do
+      shop_product = shop_product_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_shop_product(shop_product, @invalid_attrs)
+      assert shop_product == Settings.get_shop_product!(shop_product.id)
+    end
+
+    test "delete_shop_product/1 deletes the shop_product" do
+      shop_product = shop_product_fixture()
+      assert {:ok, %ShopProduct{}} = Settings.delete_shop_product(shop_product)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_shop_product!(shop_product.id) end
+    end
+
+    test "change_shop_product/1 returns a shop_product changeset" do
+      shop_product = shop_product_fixture()
+      assert %Ecto.Changeset{} = Settings.change_shop_product(shop_product)
+    end
+  end
+
+  describe "tags" do
+    alias United.Settings.Tag
+
+    @valid_attrs %{desc: "some desc", name: "some name"}
+    @update_attrs %{desc: "some updated desc", name: "some updated name"}
+    @invalid_attrs %{desc: nil, name: nil}
+
+    def tag_fixture(attrs \\ %{}) do
+      {:ok, tag} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_tag()
+
+      tag
+    end
+
+    test "list_tags/0 returns all tags" do
+      tag = tag_fixture()
+      assert Settings.list_tags() == [tag]
+    end
+
+    test "get_tag!/1 returns the tag with given id" do
+      tag = tag_fixture()
+      assert Settings.get_tag!(tag.id) == tag
+    end
+
+    test "create_tag/1 with valid data creates a tag" do
+      assert {:ok, %Tag{} = tag} = Settings.create_tag(@valid_attrs)
+      assert tag.desc == "some desc"
+      assert tag.name == "some name"
+    end
+
+    test "create_tag/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_tag(@invalid_attrs)
+    end
+
+    test "update_tag/2 with valid data updates the tag" do
+      tag = tag_fixture()
+      assert {:ok, %Tag{} = tag} = Settings.update_tag(tag, @update_attrs)
+      assert tag.desc == "some updated desc"
+      assert tag.name == "some updated name"
+    end
+
+    test "update_tag/2 with invalid data returns error changeset" do
+      tag = tag_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_tag(tag, @invalid_attrs)
+      assert tag == Settings.get_tag!(tag.id)
+    end
+
+    test "delete_tag/1 deletes the tag" do
+      tag = tag_fixture()
+      assert {:ok, %Tag{}} = Settings.delete_tag(tag)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_tag!(tag.id) end
+    end
+
+    test "change_tag/1 returns a tag changeset" do
+      tag = tag_fixture()
+      assert %Ecto.Changeset{} = Settings.change_tag(tag)
+    end
+  end
+
+  describe "shop_product_tags" do
+    alias United.Settings.ShopProductTag
+
+    @valid_attrs %{shop_product_id: 42, tag_id: 42}
+    @update_attrs %{shop_product_id: 43, tag_id: 43}
+    @invalid_attrs %{shop_product_id: nil, tag_id: nil}
+
+    def shop_product_tag_fixture(attrs \\ %{}) do
+      {:ok, shop_product_tag} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_shop_product_tag()
+
+      shop_product_tag
+    end
+
+    test "list_shop_product_tags/0 returns all shop_product_tags" do
+      shop_product_tag = shop_product_tag_fixture()
+      assert Settings.list_shop_product_tags() == [shop_product_tag]
+    end
+
+    test "get_shop_product_tag!/1 returns the shop_product_tag with given id" do
+      shop_product_tag = shop_product_tag_fixture()
+      assert Settings.get_shop_product_tag!(shop_product_tag.id) == shop_product_tag
+    end
+
+    test "create_shop_product_tag/1 with valid data creates a shop_product_tag" do
+      assert {:ok, %ShopProductTag{} = shop_product_tag} = Settings.create_shop_product_tag(@valid_attrs)
+      assert shop_product_tag.shop_product_id == 42
+      assert shop_product_tag.tag_id == 42
+    end
+
+    test "create_shop_product_tag/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_shop_product_tag(@invalid_attrs)
+    end
+
+    test "update_shop_product_tag/2 with valid data updates the shop_product_tag" do
+      shop_product_tag = shop_product_tag_fixture()
+      assert {:ok, %ShopProductTag{} = shop_product_tag} = Settings.update_shop_product_tag(shop_product_tag, @update_attrs)
+      assert shop_product_tag.shop_product_id == 43
+      assert shop_product_tag.tag_id == 43
+    end
+
+    test "update_shop_product_tag/2 with invalid data returns error changeset" do
+      shop_product_tag = shop_product_tag_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_shop_product_tag(shop_product_tag, @invalid_attrs)
+      assert shop_product_tag == Settings.get_shop_product_tag!(shop_product_tag.id)
+    end
+
+    test "delete_shop_product_tag/1 deletes the shop_product_tag" do
+      shop_product_tag = shop_product_tag_fixture()
+      assert {:ok, %ShopProductTag{}} = Settings.delete_shop_product_tag(shop_product_tag)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_shop_product_tag!(shop_product_tag.id) end
+    end
+
+    test "change_shop_product_tag/1 returns a shop_product_tag changeset" do
+      shop_product_tag = shop_product_tag_fixture()
+      assert %Ecto.Changeset{} = Settings.change_shop_product_tag(shop_product_tag)
+    end
+  end
 end

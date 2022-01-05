@@ -7,6 +7,10 @@ defmodule United do
   if it comes from the database, an external API or others.
   """
 
+  def auto_find() do
+    list = [1, 2, 3, 4, 5, 6]
+  end
+
   def upload_file(params) do
     check_upload =
       Map.values(params)

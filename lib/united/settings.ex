@@ -313,4 +313,388 @@ defmodule United.Settings do
   def change_stored_media(%StoredMedia{} = stored_media, attrs \\ %{}) do
     StoredMedia.changeset(stored_media, attrs)
   end
+
+  alias United.Settings.Shop
+
+  @doc """
+  Returns the list of shops.
+
+  ## Examples
+
+      iex> list_shops()
+      [%Shop{}, ...]
+
+  """
+  def list_shops do
+    Repo.all(Shop)
+  end
+
+  @doc """
+  Gets a single shop.
+
+  Raises `Ecto.NoResultsError` if the Shop does not exist.
+
+  ## Examples
+
+      iex> get_shop!(123)
+      %Shop{}
+
+      iex> get_shop!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_shop!(id), do: Repo.get!(Shop, id)
+
+  @doc """
+  Creates a shop.
+
+  ## Examples
+
+      iex> create_shop(%{field: value})
+      {:ok, %Shop{}}
+
+      iex> create_shop(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_shop(attrs \\ %{}) do
+    %Shop{}
+    |> Shop.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a shop.
+
+  ## Examples
+
+      iex> update_shop(shop, %{field: new_value})
+      {:ok, %Shop{}}
+
+      iex> update_shop(shop, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_shop(%Shop{} = shop, attrs) do
+    shop
+    |> Shop.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a shop.
+
+  ## Examples
+
+      iex> delete_shop(shop)
+      {:ok, %Shop{}}
+
+      iex> delete_shop(shop)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_shop(%Shop{} = shop) do
+    Repo.delete(shop)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking shop changes.
+
+  ## Examples
+
+      iex> change_shop(shop)
+      %Ecto.Changeset{data: %Shop{}}
+
+  """
+  def change_shop(%Shop{} = shop, attrs \\ %{}) do
+    Shop.changeset(shop, attrs)
+  end
+
+  alias United.Settings.ShopProduct
+
+  @doc """
+  Returns the list of shop_products.
+
+  ## Examples
+
+      iex> list_shop_products()
+      [%ShopProduct{}, ...]
+
+  """
+  def list_shop_products do
+    Repo.all(ShopProduct)
+  end
+
+  @doc """
+  Gets a single shop_product.
+
+  Raises `Ecto.NoResultsError` if the Shop product does not exist.
+
+  ## Examples
+
+      iex> get_shop_product!(123)
+      %ShopProduct{}
+
+      iex> get_shop_product!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_shop_product!(id), do: Repo.get!(ShopProduct, id)
+
+  @doc """
+  Creates a shop_product.
+
+  ## Examples
+
+      iex> create_shop_product(%{field: value})
+      {:ok, %ShopProduct{}}
+
+      iex> create_shop_product(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_shop_product(attrs \\ %{}) do
+    %ShopProduct{}
+    |> ShopProduct.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a shop_product.
+
+  ## Examples
+
+      iex> update_shop_product(shop_product, %{field: new_value})
+      {:ok, %ShopProduct{}}
+
+      iex> update_shop_product(shop_product, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_shop_product(%ShopProduct{} = shop_product, attrs) do
+    shop_product
+    |> ShopProduct.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a shop_product.
+
+  ## Examples
+
+      iex> delete_shop_product(shop_product)
+      {:ok, %ShopProduct{}}
+
+      iex> delete_shop_product(shop_product)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_shop_product(%ShopProduct{} = shop_product) do
+    Repo.delete(shop_product)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking shop_product changes.
+
+  ## Examples
+
+      iex> change_shop_product(shop_product)
+      %Ecto.Changeset{data: %ShopProduct{}}
+
+  """
+  def change_shop_product(%ShopProduct{} = shop_product, attrs \\ %{}) do
+    ShopProduct.changeset(shop_product, attrs)
+  end
+
+  alias United.Settings.Tag
+
+  @doc """
+  Returns the list of tags.
+
+  ## Examples
+
+      iex> list_tags()
+      [%Tag{}, ...]
+
+  """
+  def list_tags do
+    Repo.all(Tag)
+  end
+
+  @doc """
+  Gets a single tag.
+
+  Raises `Ecto.NoResultsError` if the Tag does not exist.
+
+  ## Examples
+
+      iex> get_tag!(123)
+      %Tag{}
+
+      iex> get_tag!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_tag!(id), do: Repo.get!(Tag, id)
+
+  @doc """
+  Creates a tag.
+
+  ## Examples
+
+      iex> create_tag(%{field: value})
+      {:ok, %Tag{}}
+
+      iex> create_tag(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_tag(attrs \\ %{}) do
+    %Tag{}
+    |> Tag.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a tag.
+
+  ## Examples
+
+      iex> update_tag(tag, %{field: new_value})
+      {:ok, %Tag{}}
+
+      iex> update_tag(tag, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_tag(%Tag{} = tag, attrs) do
+    tag
+    |> Tag.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a tag.
+
+  ## Examples
+
+      iex> delete_tag(tag)
+      {:ok, %Tag{}}
+
+      iex> delete_tag(tag)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_tag(%Tag{} = tag) do
+    Repo.delete(tag)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking tag changes.
+
+  ## Examples
+
+      iex> change_tag(tag)
+      %Ecto.Changeset{data: %Tag{}}
+
+  """
+  def change_tag(%Tag{} = tag, attrs \\ %{}) do
+    Tag.changeset(tag, attrs)
+  end
+
+  alias United.Settings.ShopProductTag
+
+  @doc """
+  Returns the list of shop_product_tags.
+
+  ## Examples
+
+      iex> list_shop_product_tags()
+      [%ShopProductTag{}, ...]
+
+  """
+  def list_shop_product_tags do
+    Repo.all(ShopProductTag)
+  end
+
+  @doc """
+  Gets a single shop_product_tag.
+
+  Raises `Ecto.NoResultsError` if the Shop product tag does not exist.
+
+  ## Examples
+
+      iex> get_shop_product_tag!(123)
+      %ShopProductTag{}
+
+      iex> get_shop_product_tag!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_shop_product_tag!(id), do: Repo.get!(ShopProductTag, id)
+
+  @doc """
+  Creates a shop_product_tag.
+
+  ## Examples
+
+      iex> create_shop_product_tag(%{field: value})
+      {:ok, %ShopProductTag{}}
+
+      iex> create_shop_product_tag(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_shop_product_tag(attrs \\ %{}) do
+    %ShopProductTag{}
+    |> ShopProductTag.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a shop_product_tag.
+
+  ## Examples
+
+      iex> update_shop_product_tag(shop_product_tag, %{field: new_value})
+      {:ok, %ShopProductTag{}}
+
+      iex> update_shop_product_tag(shop_product_tag, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_shop_product_tag(%ShopProductTag{} = shop_product_tag, attrs) do
+    shop_product_tag
+    |> ShopProductTag.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a shop_product_tag.
+
+  ## Examples
+
+      iex> delete_shop_product_tag(shop_product_tag)
+      {:ok, %ShopProductTag{}}
+
+      iex> delete_shop_product_tag(shop_product_tag)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_shop_product_tag(%ShopProductTag{} = shop_product_tag) do
+    Repo.delete(shop_product_tag)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking shop_product_tag changes.
+
+  ## Examples
+
+      iex> change_shop_product_tag(shop_product_tag)
+      %Ecto.Changeset{data: %ShopProductTag{}}
+
+  """
+  def change_shop_product_tag(%ShopProductTag{} = shop_product_tag, attrs \\ %{}) do
+    ShopProductTag.changeset(shop_product_tag, attrs)
+  end
 end

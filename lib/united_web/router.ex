@@ -18,12 +18,6 @@ defmodule UnitedWeb.Router do
     # plug(Materialize.Authorization)
   end
 
-  scope "/", UnitedWeb do
-    pipe_through [:browser, :frontend]
-
-    get "/", PageController, :index
-  end
-
   scope "/admin", UnitedWeb do
     pipe_through :browser
     get("/login", LoginController, :index)
@@ -31,12 +25,11 @@ defmodule UnitedWeb.Router do
     get("/logout", LoginController, :logout)
     resources "/users", UserController
     resources "/blogs", BlogController
+    resources "/shops", ShopController
+    resources "/shop_products", ShopProductController
+    resources "/tags", TagController
+    resources "/shop_product_tags", ShopProductTagController
     resources "/stored_medias", StoredMediaController
-  end
-
-  scope "/", UnitedWeb do
-    pipe_through :browser
-    get("/", LandingPageController, :index)
   end
 
   scope "/api", UnitedWeb do
@@ -46,6 +39,12 @@ defmodule UnitedWeb.Router do
     delete("/webhook", ApiController, :webhook_delete)
     get("/:model", ApiController, :datatable)
     post("/:model", ApiController, :form_submission)
+  end
+
+  scope "/", UnitedWeb do
+    pipe_through [:browser, :frontend]
+
+    get "*path", PageController, :index
   end
 
   # Other scopes may use custom stacks.

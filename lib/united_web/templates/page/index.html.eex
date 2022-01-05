@@ -10,11 +10,58 @@
   });
 
   function repeatAction() {
-		$.ajax({url: "/html/landing.html"}).done((html) => {
+		$.ajax({url: "/html/landing.html", async: false}).done((html) => {
 			$("#main-content").html(html)
 		})
-
   }
   repeatAction()
+
+  window.addEventListener(
+      "popstate",
+      function(event) {
+        console.log(event)
+        console.log(window.history.state)
+
+        if (window.history.state != null) {
+            if (window.history.state.action == "show_blog") {
+              showBlog(window.history.state.id, false)
+            }
+            if (window.history.state.action == "show_home") {
+              showHome()
+            }
+        } else {
+            showHome()
+        }
+
+      },
+      false
+  );
+
+
+function showBlog(id, saveState) {
+  $.ajax({url: "/api/webhook?scope=show_blog&id=" + id}).done((blog) => {
+
+    if (saveState == false) {
+
+    } else {
+
+      window.history.pushState({action: 'show_blog', id: id}, "Show Blog", "/blogs/"+id+"?action=show_blog&id=" + id)
+    }
+    document.title = blog.title
+    $(".home").hide()
+    $("#reading .content_header").html(`<div class="fw-bold" style="font-size: 120%;">`+blog.title+`</div><small class="text-secondary">`+blog.author+`</small>`)
+    $("#reading .content_body").html(blog.body)
+    $("#blog_featured_image").attr("src", blog.featured_image)
+    $("#reading").show()
+  })
+
+}
+
+function showHome() {
+    window.history.pushState(null, "Home", "/")
+    document.title = "Home"
+  $(".home").show()
+  $("#reading").hide() 
+}
 
 </script>

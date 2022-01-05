@@ -112,6 +112,9 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "show_blog" -> 
+          United.Settings.get_blog!(params["id"])
+          |> BluePotion.s_to_map()
         "recent_blogs" ->
           United.Settings.list_recent_blogs() |> Enum.map(&BluePotion.s_to_map(&1))
 

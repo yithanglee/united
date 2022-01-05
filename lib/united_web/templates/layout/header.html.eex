@@ -8,7 +8,7 @@
     <div class="collapse navbar-collapse" id="navbarColor02">
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link active" href="#">Dashboard
+          <a class="nav-link active" href="javascript:void(0);" onclick="">Dashboard
             <span class="visually-hidden">(current)</span>
           </a>
         </li>

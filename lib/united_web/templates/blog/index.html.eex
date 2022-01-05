@@ -1,26 +1,46 @@
 <div class="container">
   <div class="row">
     <div class="col-12 offset-lg-2 col-lg-8 text-center">
-      Personal blog space to showcase my work.
+
+
+        Phoenix Models Control Panels
     </div>
   </div>
   <div class="row">
     <div class="col-12" id="content">
       
     </div>
+    <div id="subcontent" style="display: none;">
+    
+    </div>
   </div>
 </div>
 <script type="text/javascript">
 var list = [{
-    icon: "fa fa-2x fa-list",
+    icon: "list",
     title: "Blogs",
     active: true,
     content: `<div id="tab1"></div>`,
 },{
-    icon: "fa fa-2x fa-images",
+    icon: "collections",
     title: "Images",
     active: true,
     content: `<div id="tab2"></div>`,
+},{
+    icon: "storefront",
+    title: "Shops",
+    active: true,
+    content: `<div id="tab3"></div>`,
+},{
+    icon: "local_offer",
+    title: "Tags",
+    active: true,
+    content: `<div id="tab4"></div>`,
+},{
+    icon: "category",
+    title: "Products",
+    active: true,
+    content: `<div id="tab5"></div>`,
 }]
 var random_id = makeid(4);
 var blogs = new phoenixModel({
@@ -150,4 +170,16 @@ var medias = new phoenixModel({
 App.Page.createTable(random_id, "#tab2")
 populateTable(medias)
 
+    var xcard = `
+        <div class=" ">
+            <div x-html="data.name"></div>
+            <img x-bind:src="data.s3_url" class="w-100 h-100">
+        </div>
+
+    `
+    populateGridView(medias, xcard)
+
 </script>
+<script type="text/javascript" src="/js/shops.js"></script>
+<script type="text/javascript" src="/js/tags.js"></script>
+<script type="text/javascript" src="/js/products.js"></script>

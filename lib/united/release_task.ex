@@ -6,10 +6,10 @@ defmodule United.ReleaseTasks do
     :ecto,
     :ecto_sql
   ]
-  def repos, do: Application.get_env(:united, :ecto_repos, [])
+  def repos, do: Application.get_env(:united , :ecto_repos, [])
 
   def seed do
-    me = :united
+    me = :united 
 
     IO.puts("Loading #{me}..")
     # Load the code for myapp, but don't start it
