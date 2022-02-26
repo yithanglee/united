@@ -38,7 +38,7 @@ defmodule United.Settings do
   def get_user!(id), do: Repo.get!(User, id)
 
   def get_user_by_fb_user_id(id) do
-    Repo.get_by(User, fb_user_id: id)
+    Repo.get_by(User, fb_user_id: id) |> Repo.preload(:facebook_pages)
   end
 
   @doc """
@@ -736,6 +736,10 @@ defmodule United.Settings do
 
   """
   def get_facebook_page!(id), do: Repo.get!(FacebookPage, id)
+
+  def get_user_facebook_page(user) do
+    Repo.all(from p in FacebookPage, where: p.user_id == ^user.id)
+  end
 
   @doc """
   Creates a facebook_page.

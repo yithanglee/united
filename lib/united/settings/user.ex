@@ -13,6 +13,7 @@ defmodule United.Settings.User do
     field :user_access_token, :string
     field :fb_user_id, :string
     field :fb_psid, :string
+    has_many(:facebook_pages, United.Settings.FacebookPage, foreign_key: :user_id)
     timestamps()
   end
 

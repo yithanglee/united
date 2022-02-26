@@ -16,6 +16,12 @@ defmodule United.Settings.FacebookPage do
   def changeset(facebook_page, attrs) do
     facebook_page
     |> cast(attrs, [:user_id, :name, :page_id, :page_access_token, :shop_id])
-    |> validate_required([:user_id, :name, :page_id, :page_access_token, :shop_id])
+    |> validate_required([
+      :user_id,
+      :name,
+      :page_id,
+      :page_access_token
+      # :shop_id
+    ])
   end
 end

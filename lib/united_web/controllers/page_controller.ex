@@ -1,7 +1,7 @@
 defmodule UnitedWeb.PageController do
   use UnitedWeb, :controller
-  @app_secret "2e210fa67f156f26d8d9adb2f5524b9e"
-  @app_id "716495772618929"
+  @app_secret Application.get_env(:united, :facebook)[:app_secret]
+  @app_id Application.get_env(:united, :facebook)[:app_id]
   require IEx
 
   def fb_login(conn, _params) do

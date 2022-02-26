@@ -2,15 +2,9 @@ defmodule FacebookHelper do
   import Ecto.Query
   import UnitedWeb.Gettext
   alias United.{Settings, Repo}
-  @app_token "716495772618929|PiwrnfdhhnRdfxNlZuqy8tMUhPQ"
-  @user_access_token "EAAKLpiwCkLEBAIFUkr0bRIGbrVk6zferc1WN1eNA22szgzXV25tDxLmUXngt3hpjsfHZBDdQY8j7FvFBsi9GaEQKXCslgpYW2o4CTXKJAy7HbjWyqZBexp48lYbFLq6TIeHkmZCiy2iqsPNAw4oqyFz7ORRgvR81ZAYcMZCuQsefLxv6dlxUBQDEmePCUAZAaFOiQ5ecbQA5ZBtgQgQdsgGuUP4CZBd2wdrl36Q5S1Op9gZDZD"
-  @app_secret "2e210fa67f156f26d8d9adb2f5524b9e"
-  @app_id "716495772618929"
-  @long_live_access_token "EAAKLpiwCkLEBAFE6AO8XOuRvS1AB2fx62ZB2rCFvJtdvn0smacMuC5kSKk5ZA7oXnAxofrIqvO6m2ZBII9EsA4ACR4MSetlAuerGuAbsiAZAfHzqrjnbY1c1mHizLbvQ2WzU30UcIHGnFZCDdIpd1SZC7YwkBpo8DZCRouZCUpVaRAZDZD"
-  @user_id "10158377885470020"
-  @page_access_token "EAAKLpiwCkLEBAJ4IXng9ZAWLL4KkwkNhySnKlqxt04slrJqnqdJtDI4hfqFtIpoqaAyP4NcpzVXBFxFr7GiZAbQ6WvM4SEZCAyIaNb5wJjOKF7cvMKjhILrNNwPv3HSoZCo5cgcAMvC1LH5b16ZAIHaBN5CK8kswr4mdcn2VZCYMEV35rhOBbE"
 
-  @page_id "104846188059707"
+  @app_secret Application.get_env(:united, :facebook)[:app_secret]
+  @app_id Application.get_env(:united, :facebook)[:app_id]
 
   def stream_comments(fb_video_id_str) do
     url =
@@ -113,6 +107,7 @@ defmodule FacebookHelper do
 
   def get_user_manage_pages(user_id) do
     user = United.Settings.get_user_by_fb_user_id(user_id)
+    page_ids = user.facebook_pages |> Enum.map(& &1.page_id)
 
     url =
       "https://graph.facebook.com/#{user_id}/accounts?fields=name,access_token&access_token=#{
@@ -123,8 +118,26 @@ defmodule FacebookHelper do
 
     case res do
       {:ok, resp} ->
-        body = Jason.decode!(resp.body)
-        IO.inspect(body)
+        %{"data" => fb_page_list} = Jason.decode!(resp.body)
+        # IO.inspect(body) 
+        for fb_page <- fb_page_list do
+          unless fb_page["id"] in page_ids do
+            {:ok, page} =
+              United.Settings.create_facebook_page(%{
+                user_id: user.id,
+                page_id: fb_page["id"],
+                name: fb_page["name"],
+                page_access_token: fb_page["access_token"]
+              })
+
+            page |> BluePotion.s_to_map()
+          else
+            user.facebook_pages
+            |> Enum.filter(&(&1.page_id == fb_page["id"]))
+            |> List.first()
+            |> BluePotion.s_to_map()
+          end
+        end
     end
   end
 
@@ -143,8 +156,13 @@ defmodule FacebookHelper do
     end
   end
 
-  def inspect_token(token \\ @user_access_token) do
-    url = "https://graph.facebook.com/debug_token?input_token=#{token}&access_token=#{@app_token}"
+  def inspect_token(token) do
+    %{
+      "access_token" => app_token,
+      "token_type" => token
+    } = get_app_token()
+
+    url = "https://graph.facebook.com/debug_token?input_token=#{token}&access_token=#{app_token}"
     res = HTTPoison.get(url)
 
     case res do

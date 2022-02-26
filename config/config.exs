@@ -43,6 +43,11 @@ config :blue_potion,
     domain_name: "localhost"
   }
 
+config :united, :facebook,
+  app_token: System.get_env("APP_TOKEN"),
+  app_secret: System.get_env("APP_SECRET"),
+  app_id: System.get_env("APP_ID")
+
 config :ex_aws,
   access_key_id: "E5TQQRK798E01MT3RPRP",
   secret_access_key: "W1U0AMNppPkmPwKrmUoFcK6MLqFzDlK950mG4o05",
