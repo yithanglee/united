@@ -34,17 +34,13 @@ defmodule UnitedWeb.Router do
 
   scope "/api", UnitedWeb do
     pipe_through :api
+    get("/webhook/fb", ApiController, :fb_webhook)
+    post("/webhook/fb", ApiController, :fb_webhook_post)
     get("/webhook", ApiController, :webhook)
     post("/webhook", ApiController, :webhook_post)
     delete("/webhook", ApiController, :webhook_delete)
     get("/:model", ApiController, :datatable)
     post("/:model", ApiController, :form_submission)
-  end
-
-  scope "/", UnitedWeb do
-    pipe_through [:browser, :frontend]
-
-    get "*path", PageController, :index
   end
 
   # Other scopes may use custom stacks.
@@ -66,5 +62,14 @@ defmodule UnitedWeb.Router do
       pipe_through :browser
       live_dashboard "/dashboard", metrics: UnitedWeb.Telemetry
     end
+  end
+
+  scope "/", UnitedWeb do
+    pipe_through [:browser, :frontend]
+
+    get "/fb_login", PageController, :fb_login
+    get "/fb_callback", PageController, :fb_callback
+
+    get "/*path", PageController, :index
   end
 end

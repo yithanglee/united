@@ -12,6 +12,10 @@
             <span class="visually-hidden">(current)</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link " href="/fb_login">FB
+          </a>
+        </li>
        
       </ul>
       <form class="d-flex">

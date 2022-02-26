@@ -13,9 +13,8 @@ use Mix.Config
 #   url: [host: "example.com", port: 80],
 #   cache_static_manifest: "priv/static/cache_manifest.json"
 config :united, UnitedWeb.Endpoint,
-  url: [host: "damienslab.ga", port: 5292],
+  url: [host: "damienslab.ga", port: 5293],
   http: [port: 5292],
-  force_ssl: [hsts: true],
   https: [
     port: 5293,
     otp_app: :united,
