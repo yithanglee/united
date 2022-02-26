@@ -1,0 +1,60 @@
+<div class="container">
+  <div class="row py-4">
+    <div class="col-12 offset-lg-1 col-lg-10 text-left">
+      <div class="card">
+        <div class="card-body">
+          <p class="lead">Things to do:</p>
+          <ul>
+            <li>Connect With Facebook
+              <ul>
+                <%= if @conn.private.plug_session["current_user"] != nil do %>
+                <%= with true <- :fb_user_id in Map.keys(@conn.private.plug_session["current_user"]), 
+                               true <-  @conn.private.plug_session["current_user"].fb_user_id != nil do %>
+                <li>FB User ID: <span class="badge bg-primary">
+                    <%= @conn.private.plug_session["current_user"].fb_user_id%></span></li>
+                <% else 
+                                 _ -> %>
+                <li> <a class=" btn btn-primary btn-sm" href="/fb_login">Connect</a></li>
+                <% end %>
+                <% end %>
+              </ul>
+            </li>
+            <li>
+              Get Facebook Pages <small>Current user's managed Facebook pages.</small>
+              <div class="btn btn-sm btn-success" onclick="get_pages()">Query</div>
+              <ul id="fb_pages">
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+var pages = [];
+
+function get_pages() {
+  pages = App.api("get_pages", { id: "<%= @conn.private.plug_session["current_user"].fb_user_id %>" });
+
+  pages.forEach((v,i) => {
+
+      $("#fb_pages").append(`<li>`+v.name+` <span class="badge bg-primary">`+v.page_id+`</span>
+            <div class="btn btn-sm btn-primary" onclick="get_videos('`+v.page_access_token+`')">Check LiveVideos</div>
+            <ul id="fb_videos">
+                
+            </ul>
+        </li>`)
+  })
+
+}
+
+function get_videos(pat) {
+var res =
+    App.api("get_videos", {pat: pat});
+
+    $("#fb_videos").html(`<li>`+res.embed_html+`</li>`)
+
+}
+</script>

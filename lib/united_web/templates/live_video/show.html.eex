@@ -1,0 +1,43 @@
+<h1>Show Live video</h1>
+
+<ul>
+
+  <li>
+    <strong>Live:</strong>
+    <%= @live_video.live_id %>
+  </li>
+
+  <li>
+    <strong>Facebook page:</strong>
+    <%= @live_video.facebook_page_id %>
+  </li>
+
+  <li>
+    <strong>Title:</strong>
+    <%= @live_video.title %>
+  </li>
+
+  <li>
+    <strong>Description:</strong>
+    <%= @live_video.description %>
+  </li>
+
+  <li>
+    <strong>Embed html:</strong>
+    <%= @live_video.embed_html %>
+  </li>
+
+  <li>
+    <strong>Picture:</strong>
+    <%= @live_video.picture %>
+  </li>
+
+  <li>
+    <strong>Created at:</strong>
+    <%= @live_video.created_at %>
+  </li>
+
+</ul>
+
+<span><%= link "Edit", to: Routes.live_video_path(@conn, :edit, @live_video) %></span>
+<span><%= link "Back", to: Routes.live_video_path(@conn, :index) %></span>

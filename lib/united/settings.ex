@@ -737,8 +737,8 @@ defmodule United.Settings do
   """
   def get_facebook_page!(id), do: Repo.get!(FacebookPage, id)
 
-  def get_user_facebook_page(user) do
-    Repo.all(from p in FacebookPage, where: p.user_id == ^user.id)
+  def get_facebook_page_by_pat(page_access_token) do
+    Repo.all(from p in FacebookPage, where: p.page_access_token == ^page_access_token)
   end
 
   @doc """
@@ -804,5 +804,357 @@ defmodule United.Settings do
   """
   def change_facebook_page(%FacebookPage{} = facebook_page, attrs \\ %{}) do
     FacebookPage.changeset(facebook_page, attrs)
+  end
+
+  alias United.Settings.LiveVideo
+
+  @doc """
+  Returns the list of live_videos.
+
+  ## Examples
+
+      iex> list_live_videos()
+      [%LiveVideo{}, ...]
+
+  """
+  def list_live_videos do
+    Repo.all(LiveVideo)
+  end
+
+  @doc """
+  Gets a single live_video.
+
+  Raises `Ecto.NoResultsError` if the Live video does not exist.
+
+  ## Examples
+
+      iex> get_live_video!(123)
+      %LiveVideo{}
+
+      iex> get_live_video!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_live_video!(id), do: Repo.get!(LiveVideo, id)
+
+  def get_live_video_by_fb_id(id) do
+    Repo.all(from lv in LiveVideo, where: lv.live_id == ^id) |> List.first()
+  end
+
+  @doc """
+  Creates a live_video.
+
+  ## Examples
+
+      iex> create_live_video(%{field: value})
+      {:ok, %LiveVideo{}}
+
+      iex> create_live_video(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_live_video(attrs \\ %{}) do
+    %LiveVideo{}
+    |> LiveVideo.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a live_video.
+
+  ## Examples
+
+      iex> update_live_video(live_video, %{field: new_value})
+      {:ok, %LiveVideo{}}
+
+      iex> update_live_video(live_video, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_live_video(%LiveVideo{} = live_video, attrs) do
+    live_video
+    |> LiveVideo.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a live_video.
+
+  ## Examples
+
+      iex> delete_live_video(live_video)
+      {:ok, %LiveVideo{}}
+
+      iex> delete_live_video(live_video)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_live_video(%LiveVideo{} = live_video) do
+    Repo.delete(live_video)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking live_video changes.
+
+  ## Examples
+
+      iex> change_live_video(live_video)
+      %Ecto.Changeset{data: %LiveVideo{}}
+
+  """
+  def change_live_video(%LiveVideo{} = live_video, attrs \\ %{}) do
+    LiveVideo.changeset(live_video, attrs)
+  end
+
+  alias United.Settings.VideoComment
+
+  @doc """
+  Returns the list of video_comments.
+
+  ## Examples
+
+      iex> list_video_comments()
+      [%VideoComment{}, ...]
+
+  """
+  def list_video_comments do
+    Repo.all(VideoComment)
+  end
+
+  @doc """
+  Gets a single video_comment.
+
+  Raises `Ecto.NoResultsError` if the Video comment does not exist.
+
+  ## Examples
+
+      iex> get_video_comment!(123)
+      %VideoComment{}
+
+      iex> get_video_comment!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_video_comment!(id), do: Repo.get!(VideoComment, id)
+
+  @doc """
+  Creates a video_comment.
+
+  ## Examples
+
+      iex> create_video_comment(%{field: value})
+      {:ok, %VideoComment{}}
+
+      iex> create_video_comment(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_video_comment(attrs \\ %{}) do
+    pid =
+      with pid <- Process.whereis(:comments),
+           true <- pid != nil do
+        pid
+      else
+        _ ->
+          {:ok, pid} = Agent.start_link(fn -> [] end)
+          Process.register(pid, :comments)
+          pid
+      end
+
+    check =
+      Agent.get(pid, fn list -> list end)
+      |> Enum.reject(&(&1 == nil))
+      |> Enum.filter(&(&1.ms_id == attrs.ms_id))
+
+    pv =
+      if check == [] do
+        res = Repo.all(from p in VideoComment, where: p.ms_id == ^attrs.ms_id) |> List.first()
+
+        f =
+          if res == nil do
+            %VideoComment{}
+            |> VideoComment.changeset(attrs)
+            |> Repo.insert!()
+          else
+            res
+          end
+
+        Agent.update(pid, fn list -> List.insert_at(list, 0, res) end)
+
+        f
+      else
+        List.first(check)
+      end
+  end
+
+  @doc """
+  Updates a video_comment.
+
+  ## Examples
+
+      iex> update_video_comment(video_comment, %{field: new_value})
+      {:ok, %VideoComment{}}
+
+      iex> update_video_comment(video_comment, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_video_comment(%VideoComment{} = video_comment, attrs) do
+    video_comment
+    |> VideoComment.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a video_comment.
+
+  ## Examples
+
+      iex> delete_video_comment(video_comment)
+      {:ok, %VideoComment{}}
+
+      iex> delete_video_comment(video_comment)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_video_comment(%VideoComment{} = video_comment) do
+    Repo.delete(video_comment)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking video_comment changes.
+
+  ## Examples
+
+      iex> change_video_comment(video_comment)
+      %Ecto.Changeset{data: %VideoComment{}}
+
+  """
+  def change_video_comment(%VideoComment{} = video_comment, attrs \\ %{}) do
+    VideoComment.changeset(video_comment, attrs)
+  end
+
+  alias United.Settings.PageVisitor
+
+  @doc """
+  Returns the list of page_visitors.
+
+  ## Examples
+
+      iex> list_page_visitors()
+      [%PageVisitor{}, ...]
+
+  """
+  def list_page_visitors do
+    Repo.all(PageVisitor)
+  end
+
+  @doc """
+  Gets a single page_visitor.
+
+  Raises `Ecto.NoResultsError` if the Page visitor does not exist.
+
+  ## Examples
+
+      iex> get_page_visitor!(123)
+      %PageVisitor{}
+
+      iex> get_page_visitor!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_page_visitor!(id), do: Repo.get!(PageVisitor, id)
+
+  def get_page_visitor_by_psid(psid) do
+    pid =
+      with pid <- Process.whereis(:page_visitors),
+           true <- pid != nil do
+        pid
+      else
+        _ ->
+          {:ok, pid} = Agent.start_link(fn -> [] end)
+          Process.register(pid, :page_visitors)
+          pid
+      end
+
+    check = Agent.get(pid, fn list -> list end) |> Enum.filter(&(&1.psid == psid))
+
+    pv =
+      if check == [] do
+        res = Repo.all(from p in PageVisitor, where: p.psid == ^psid) |> List.first()
+
+        if res != nil do
+          Agent.update(pid, fn list -> List.insert_at(list, 0, res) end)
+        end
+
+        res
+      else
+        List.first(check)
+      end
+  end
+
+  @doc """
+  Creates a page_visitor.
+
+  ## Examples
+
+      iex> create_page_visitor(%{field: value})
+      {:ok, %PageVisitor{}}
+
+      iex> create_page_visitor(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_page_visitor(attrs \\ %{}) do
+    %PageVisitor{}
+    |> PageVisitor.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a page_visitor.
+
+  ## Examples
+
+      iex> update_page_visitor(page_visitor, %{field: new_value})
+      {:ok, %PageVisitor{}}
+
+      iex> update_page_visitor(page_visitor, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_page_visitor(%PageVisitor{} = page_visitor, attrs) do
+    page_visitor
+    |> PageVisitor.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a page_visitor.
+
+  ## Examples
+
+      iex> delete_page_visitor(page_visitor)
+      {:ok, %PageVisitor{}}
+
+      iex> delete_page_visitor(page_visitor)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_page_visitor(%PageVisitor{} = page_visitor) do
+    Repo.delete(page_visitor)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking page_visitor changes.
+
+  ## Examples
+
+      iex> change_page_visitor(page_visitor)
+      %Ecto.Changeset{data: %PageVisitor{}}
+
+  """
+  def change_page_visitor(%PageVisitor{} = page_visitor, attrs \\ %{}) do
+    PageVisitor.changeset(page_visitor, attrs)
   end
 end

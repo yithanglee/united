@@ -64,14 +64,10 @@ defmodule FacebookHelper do
     end
   end
 
-  def page_videos() do
-    pat =
-      "EAAKLpiwCkLEBAJ4IXng9ZAWLL4KkwkNhySnKlqxt04slrJqnqdJtDI4hfqFtIpoqaAyP4NcpzVXBFxFr7GiZAbQ6WvM4SEZCAyIaNb5wJjOKF7cvMKjhILrNNwPv3HSoZCo5cgcAMvC1LH5b16ZAIHaBN5CK8kswr4mdcn2VZCYMEV35rhOBbE"
-
-    url =
-      "https://graph.facebook.com/#{@page_id}?fields=live_videos&access_token=#{
-        @page_access_token
-      }"
+  def page_videos(page_access_token) do
+    pat = page_access_token
+    page = United.Settings.get_facebook_page_by_pat(pat) |> List.first()
+    url = "https://graph.facebook.com/#{page.page_id}?fields=live_videos&access_token=#{pat}"
 
     res = HTTPoison.get(url)
 
@@ -83,25 +79,124 @@ defmodule FacebookHelper do
         IO.inspect(videos)
 
         live_now = Enum.filter(videos, &(&1["status"] == "LIVE")) |> List.first()
-        # get_live_video(live_now["id"])
-        stream_comments(live_now["id"])
 
-        body
+        IO.inspect(live_now)
+
+        sample = %{
+          "embed_html" =>
+            "<iframe allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\" allowfullscreen=\"true\" frameborder=\"0\" height=\"360\" scrolling=\"no\" src=\"https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fdamienslab%2Fvideos%2F539317677832076%2F&width=640\" style=\"border:none;overflow:hidden\" width=\"640\"></iframe>",
+          "id" => "412049180672738",
+          "status" => "LIVE",
+          "title" => "test webhook"
+        }
+
+        check = United.Settings.get_live_video_by_fb_id(live_now["id"])
+
+        live_video =
+          if check != nil do
+            check
+          else
+            {:ok, lv} =
+              United.Settings.create_live_video(
+                live_now
+                |> Map.put("facebook_page_id", page.id)
+                |> Map.put("live_id", live_now["id"])
+                |> Map.delete("id")
+              )
+
+            lv
+          end
+
+        get_live_video(live_now["id"], pat)
+        # stream_comments(live_now["id"])
+
+        live_video |> BluePotion.s_to_map()
     end
   end
 
-  def get_live_video(live_now) do
+  def get_live_video(live_now, page_access_token) do
     IO.inspect(live_now)
 
     url =
-      "https://graph.facebook.com/#{live_now}?fields=comments&access_token=#{@page_access_token}"
+      "https://graph.facebook.com/#{live_now}?fields=comments&access_token=#{page_access_token}"
 
     res = HTTPoison.get(url)
 
     case res do
       {:ok, resp} ->
         body = Jason.decode!(resp.body)
-        IO.inspect(body)
+
+        %{"comments" => %{"data" => comments, "paging" => paging}} = body
+
+        for %{
+              "created_time" => created_at,
+              "from" => %{"id" => psid, "name" => visitor_name},
+              "id" => ms_id,
+              "message" => message
+            } = comment <- comments do
+          page_visitor =
+            with pv <- United.Settings.get_page_visitor_by_psid(psid),
+                 true <- pv != nil do
+              pv
+            else
+              _ ->
+                {:ok, pv} = United.Settings.create_page_visitor(%{psid: psid, name: visitor_name})
+                pv
+            end
+
+          United.Settings.create_video_comment(%{
+            ms_id: ms_id,
+            page_visitor_id: page_visitor.id,
+            message: message,
+            created_at: created_at
+          })
+        end
+
+        if "next" in Map.keys(paging) do
+          next_comment_pages(paging["next"])
+        end
+    end
+  end
+
+  def next_comment_pages(url) do
+    res = HTTPoison.get(url)
+
+    case res do
+      {:ok, resp} ->
+        body = Jason.decode!(resp.body)
+
+        %{"data" => comments, "paging" => paging} = body
+
+        for %{
+              "created_time" => created_at,
+              "from" => %{"id" => psid, "name" => visitor_name},
+              "id" => ms_id,
+              "message" => message
+            } = comment <- comments do
+          page_visitor =
+            with pv <- United.Settings.get_page_visitor_by_psid(psid),
+                 true <- pv != nil do
+              pv
+            else
+              _ ->
+                {:ok, pv} = United.Settings.create_page_visitor(%{psid: psid, name: visitor_name})
+                pv
+            end
+
+          United.Settings.create_video_comment(%{
+            ms_id: ms_id,
+            page_visitor_id: page_visitor.id,
+            message: message,
+            created_at: created_at
+          })
+        end
+
+        if "next" in Map.keys(paging) do
+          next_comment_pages(paging["next"])
+        end
+
+      _ ->
+        nil
     end
   end
 

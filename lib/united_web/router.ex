@@ -20,6 +20,7 @@ defmodule UnitedWeb.Router do
 
   scope "/admin", UnitedWeb do
     pipe_through :browser
+    get("/dashboard", PageController, :dashboard)
     get("/login", LoginController, :index)
     get("/register", LoginController, :register)
     post("/register", LoginController, :create)
@@ -33,6 +34,9 @@ defmodule UnitedWeb.Router do
     resources "/shop_product_tags", ShopProductTagController
     resources "/stored_medias", StoredMediaController
     resources "/facebook_pages", FacebookPageController
+    resources "/live_videos", LiveVideoController
+    resources "/video_comments", VideoCommentController
+    resources "/page_visitors", PageVisitorController
   end
 
   scope "/api", UnitedWeb do

@@ -125,6 +125,9 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "get_videos" ->
+          FacebookHelper.page_videos(params["pat"])
+
         "get_pages" ->
           FacebookHelper.get_user_manage_pages(params["id"])
 

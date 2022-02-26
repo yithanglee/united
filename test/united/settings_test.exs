@@ -586,4 +586,209 @@ defmodule United.SettingsTest do
       assert %Ecto.Changeset{} = Settings.change_facebook_page(facebook_page)
     end
   end
+
+  describe "live_videos" do
+    alias United.Settings.LiveVideo
+
+    @valid_attrs %{created_at: ~N[2010-04-17 14:00:00], description: "some description", embed_html: "some embed_html", facebook_page_id: 42, live_id: "some live_id", picture: "some picture", title: "some title"}
+    @update_attrs %{created_at: ~N[2011-05-18 15:01:01], description: "some updated description", embed_html: "some updated embed_html", facebook_page_id: 43, live_id: "some updated live_id", picture: "some updated picture", title: "some updated title"}
+    @invalid_attrs %{created_at: nil, description: nil, embed_html: nil, facebook_page_id: nil, live_id: nil, picture: nil, title: nil}
+
+    def live_video_fixture(attrs \\ %{}) do
+      {:ok, live_video} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_live_video()
+
+      live_video
+    end
+
+    test "list_live_videos/0 returns all live_videos" do
+      live_video = live_video_fixture()
+      assert Settings.list_live_videos() == [live_video]
+    end
+
+    test "get_live_video!/1 returns the live_video with given id" do
+      live_video = live_video_fixture()
+      assert Settings.get_live_video!(live_video.id) == live_video
+    end
+
+    test "create_live_video/1 with valid data creates a live_video" do
+      assert {:ok, %LiveVideo{} = live_video} = Settings.create_live_video(@valid_attrs)
+      assert live_video.created_at == ~N[2010-04-17 14:00:00]
+      assert live_video.description == "some description"
+      assert live_video.embed_html == "some embed_html"
+      assert live_video.facebook_page_id == 42
+      assert live_video.live_id == "some live_id"
+      assert live_video.picture == "some picture"
+      assert live_video.title == "some title"
+    end
+
+    test "create_live_video/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_live_video(@invalid_attrs)
+    end
+
+    test "update_live_video/2 with valid data updates the live_video" do
+      live_video = live_video_fixture()
+      assert {:ok, %LiveVideo{} = live_video} = Settings.update_live_video(live_video, @update_attrs)
+      assert live_video.created_at == ~N[2011-05-18 15:01:01]
+      assert live_video.description == "some updated description"
+      assert live_video.embed_html == "some updated embed_html"
+      assert live_video.facebook_page_id == 43
+      assert live_video.live_id == "some updated live_id"
+      assert live_video.picture == "some updated picture"
+      assert live_video.title == "some updated title"
+    end
+
+    test "update_live_video/2 with invalid data returns error changeset" do
+      live_video = live_video_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_live_video(live_video, @invalid_attrs)
+      assert live_video == Settings.get_live_video!(live_video.id)
+    end
+
+    test "delete_live_video/1 deletes the live_video" do
+      live_video = live_video_fixture()
+      assert {:ok, %LiveVideo{}} = Settings.delete_live_video(live_video)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_live_video!(live_video.id) end
+    end
+
+    test "change_live_video/1 returns a live_video changeset" do
+      live_video = live_video_fixture()
+      assert %Ecto.Changeset{} = Settings.change_live_video(live_video)
+    end
+  end
+
+  describe "video_comments" do
+    alias United.Settings.VideoComment
+
+    @valid_attrs %{created_at: ~N[2010-04-17 14:00:00], message: "some message", ms_id: "some ms_id", page_visitor_id: 42}
+    @update_attrs %{created_at: ~N[2011-05-18 15:01:01], message: "some updated message", ms_id: "some updated ms_id", page_visitor_id: 43}
+    @invalid_attrs %{created_at: nil, message: nil, ms_id: nil, page_visitor_id: nil}
+
+    def video_comment_fixture(attrs \\ %{}) do
+      {:ok, video_comment} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_video_comment()
+
+      video_comment
+    end
+
+    test "list_video_comments/0 returns all video_comments" do
+      video_comment = video_comment_fixture()
+      assert Settings.list_video_comments() == [video_comment]
+    end
+
+    test "get_video_comment!/1 returns the video_comment with given id" do
+      video_comment = video_comment_fixture()
+      assert Settings.get_video_comment!(video_comment.id) == video_comment
+    end
+
+    test "create_video_comment/1 with valid data creates a video_comment" do
+      assert {:ok, %VideoComment{} = video_comment} = Settings.create_video_comment(@valid_attrs)
+      assert video_comment.created_at == ~N[2010-04-17 14:00:00]
+      assert video_comment.message == "some message"
+      assert video_comment.ms_id == "some ms_id"
+      assert video_comment.page_visitor_id == 42
+    end
+
+    test "create_video_comment/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_video_comment(@invalid_attrs)
+    end
+
+    test "update_video_comment/2 with valid data updates the video_comment" do
+      video_comment = video_comment_fixture()
+      assert {:ok, %VideoComment{} = video_comment} = Settings.update_video_comment(video_comment, @update_attrs)
+      assert video_comment.created_at == ~N[2011-05-18 15:01:01]
+      assert video_comment.message == "some updated message"
+      assert video_comment.ms_id == "some updated ms_id"
+      assert video_comment.page_visitor_id == 43
+    end
+
+    test "update_video_comment/2 with invalid data returns error changeset" do
+      video_comment = video_comment_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_video_comment(video_comment, @invalid_attrs)
+      assert video_comment == Settings.get_video_comment!(video_comment.id)
+    end
+
+    test "delete_video_comment/1 deletes the video_comment" do
+      video_comment = video_comment_fixture()
+      assert {:ok, %VideoComment{}} = Settings.delete_video_comment(video_comment)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_video_comment!(video_comment.id) end
+    end
+
+    test "change_video_comment/1 returns a video_comment changeset" do
+      video_comment = video_comment_fixture()
+      assert %Ecto.Changeset{} = Settings.change_video_comment(video_comment)
+    end
+  end
+
+  describe "page_visitors" do
+    alias United.Settings.PageVisitor
+
+    @valid_attrs %{email: "some email", facebook_page_id: 42, name: "some name", phone: "some phone", profile_pic: "some profile_pic", psid: "some psid"}
+    @update_attrs %{email: "some updated email", facebook_page_id: 43, name: "some updated name", phone: "some updated phone", profile_pic: "some updated profile_pic", psid: "some updated psid"}
+    @invalid_attrs %{email: nil, facebook_page_id: nil, name: nil, phone: nil, profile_pic: nil, psid: nil}
+
+    def page_visitor_fixture(attrs \\ %{}) do
+      {:ok, page_visitor} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_page_visitor()
+
+      page_visitor
+    end
+
+    test "list_page_visitors/0 returns all page_visitors" do
+      page_visitor = page_visitor_fixture()
+      assert Settings.list_page_visitors() == [page_visitor]
+    end
+
+    test "get_page_visitor!/1 returns the page_visitor with given id" do
+      page_visitor = page_visitor_fixture()
+      assert Settings.get_page_visitor!(page_visitor.id) == page_visitor
+    end
+
+    test "create_page_visitor/1 with valid data creates a page_visitor" do
+      assert {:ok, %PageVisitor{} = page_visitor} = Settings.create_page_visitor(@valid_attrs)
+      assert page_visitor.email == "some email"
+      assert page_visitor.facebook_page_id == 42
+      assert page_visitor.name == "some name"
+      assert page_visitor.phone == "some phone"
+      assert page_visitor.profile_pic == "some profile_pic"
+      assert page_visitor.psid == "some psid"
+    end
+
+    test "create_page_visitor/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_page_visitor(@invalid_attrs)
+    end
+
+    test "update_page_visitor/2 with valid data updates the page_visitor" do
+      page_visitor = page_visitor_fixture()
+      assert {:ok, %PageVisitor{} = page_visitor} = Settings.update_page_visitor(page_visitor, @update_attrs)
+      assert page_visitor.email == "some updated email"
+      assert page_visitor.facebook_page_id == 43
+      assert page_visitor.name == "some updated name"
+      assert page_visitor.phone == "some updated phone"
+      assert page_visitor.profile_pic == "some updated profile_pic"
+      assert page_visitor.psid == "some updated psid"
+    end
+
+    test "update_page_visitor/2 with invalid data returns error changeset" do
+      page_visitor = page_visitor_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_page_visitor(page_visitor, @invalid_attrs)
+      assert page_visitor == Settings.get_page_visitor!(page_visitor.id)
+    end
+
+    test "delete_page_visitor/1 deletes the page_visitor" do
+      page_visitor = page_visitor_fixture()
+      assert {:ok, %PageVisitor{}} = Settings.delete_page_visitor(page_visitor)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_page_visitor!(page_visitor.id) end
+    end
+
+    test "change_page_visitor/1 returns a page_visitor changeset" do
+      page_visitor = page_visitor_fixture()
+      assert %Ecto.Changeset{} = Settings.change_page_visitor(page_visitor)
+    end
+  end
 end

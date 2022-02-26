@@ -1,0 +1,28 @@
+<h1>Show Video comment</h1>
+
+<ul>
+
+  <li>
+    <strong>Ms:</strong>
+    <%= @video_comment.ms_id %>
+  </li>
+
+  <li>
+    <strong>Message:</strong>
+    <%= @video_comment.message %>
+  </li>
+
+  <li>
+    <strong>Created at:</strong>
+    <%= @video_comment.created_at %>
+  </li>
+
+  <li>
+    <strong>Page visitor:</strong>
+    <%= @video_comment.page_visitor_id %>
+  </li>
+
+</ul>
+
+<span><%= link "Edit", to: Routes.video_comment_path(@conn, :edit, @video_comment) %></span>
+<span><%= link "Back", to: Routes.video_comment_path(@conn, :index) %></span>

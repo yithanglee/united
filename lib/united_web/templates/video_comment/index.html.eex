@@ -1,0 +1,32 @@
+<h1>Listing Video comments</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Ms</th>
+      <th>Message</th>
+      <th>Created at</th>
+      <th>Page visitor</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for video_comment <- @video_comments do %>
+    <tr>
+      <td><%= video_comment.ms_id %></td>
+      <td><%= video_comment.message %></td>
+      <td><%= video_comment.created_at %></td>
+      <td><%= video_comment.page_visitor_id %></td>
+
+      <td>
+        <span><%= link "Show", to: Routes.video_comment_path(@conn, :show, video_comment) %></span>
+        <span><%= link "Edit", to: Routes.video_comment_path(@conn, :edit, video_comment) %></span>
+        <span><%= link "Delete", to: Routes.video_comment_path(@conn, :delete, video_comment), method: :delete, data: [confirm: "Are you sure?"] %></span>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+
+<span><%= link "New Video comment", to: Routes.video_comment_path(@conn, :new) %></span>

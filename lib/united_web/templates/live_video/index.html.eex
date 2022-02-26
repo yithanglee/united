@@ -1,0 +1,38 @@
+<h1>Listing Live videos</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Live</th>
+      <th>Facebook page</th>
+      <th>Title</th>
+      <th>Description</th>
+      <th>Embed html</th>
+      <th>Picture</th>
+      <th>Created at</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for live_video <- @live_videos do %>
+    <tr>
+      <td><%= live_video.live_id %></td>
+      <td><%= live_video.facebook_page_id %></td>
+      <td><%= live_video.title %></td>
+      <td><%= live_video.description %></td>
+      <td><%= live_video.embed_html %></td>
+      <td><%= live_video.picture %></td>
+      <td><%= live_video.created_at %></td>
+
+      <td>
+        <span><%= link "Show", to: Routes.live_video_path(@conn, :show, live_video) %></span>
+        <span><%= link "Edit", to: Routes.live_video_path(@conn, :edit, live_video) %></span>
+        <span><%= link "Delete", to: Routes.live_video_path(@conn, :delete, live_video), method: :delete, data: [confirm: "Are you sure?"] %></span>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+
+<span><%= link "New Live video", to: Routes.live_video_path(@conn, :new) %></span>
