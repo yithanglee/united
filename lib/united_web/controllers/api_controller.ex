@@ -125,6 +125,9 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "get_pages" ->
+          FacebookHelper.get_user_manage_pages(params["id"])
+
         "show_blog" ->
           United.Settings.get_blog!(params["id"])
           |> BluePotion.s_to_map()

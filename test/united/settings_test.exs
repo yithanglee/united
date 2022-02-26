@@ -519,4 +519,71 @@ defmodule United.SettingsTest do
       assert %Ecto.Changeset{} = Settings.change_shop_product_tag(shop_product_tag)
     end
   end
+
+  describe "facebook_pages" do
+    alias United.Settings.FacebookPage
+
+    @valid_attrs %{name: "some name", page_access_token: "some page_access_token", page_id: "some page_id", shop_id: 42, user_id: 42}
+    @update_attrs %{name: "some updated name", page_access_token: "some updated page_access_token", page_id: "some updated page_id", shop_id: 43, user_id: 43}
+    @invalid_attrs %{name: nil, page_access_token: nil, page_id: nil, shop_id: nil, user_id: nil}
+
+    def facebook_page_fixture(attrs \\ %{}) do
+      {:ok, facebook_page} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_facebook_page()
+
+      facebook_page
+    end
+
+    test "list_facebook_pages/0 returns all facebook_pages" do
+      facebook_page = facebook_page_fixture()
+      assert Settings.list_facebook_pages() == [facebook_page]
+    end
+
+    test "get_facebook_page!/1 returns the facebook_page with given id" do
+      facebook_page = facebook_page_fixture()
+      assert Settings.get_facebook_page!(facebook_page.id) == facebook_page
+    end
+
+    test "create_facebook_page/1 with valid data creates a facebook_page" do
+      assert {:ok, %FacebookPage{} = facebook_page} = Settings.create_facebook_page(@valid_attrs)
+      assert facebook_page.name == "some name"
+      assert facebook_page.page_access_token == "some page_access_token"
+      assert facebook_page.page_id == "some page_id"
+      assert facebook_page.shop_id == 42
+      assert facebook_page.user_id == 42
+    end
+
+    test "create_facebook_page/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_facebook_page(@invalid_attrs)
+    end
+
+    test "update_facebook_page/2 with valid data updates the facebook_page" do
+      facebook_page = facebook_page_fixture()
+      assert {:ok, %FacebookPage{} = facebook_page} = Settings.update_facebook_page(facebook_page, @update_attrs)
+      assert facebook_page.name == "some updated name"
+      assert facebook_page.page_access_token == "some updated page_access_token"
+      assert facebook_page.page_id == "some updated page_id"
+      assert facebook_page.shop_id == 43
+      assert facebook_page.user_id == 43
+    end
+
+    test "update_facebook_page/2 with invalid data returns error changeset" do
+      facebook_page = facebook_page_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_facebook_page(facebook_page, @invalid_attrs)
+      assert facebook_page == Settings.get_facebook_page!(facebook_page.id)
+    end
+
+    test "delete_facebook_page/1 deletes the facebook_page" do
+      facebook_page = facebook_page_fixture()
+      assert {:ok, %FacebookPage{}} = Settings.delete_facebook_page(facebook_page)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_facebook_page!(facebook_page.id) end
+    end
+
+    test "change_facebook_page/1 returns a facebook_page changeset" do
+      facebook_page = facebook_page_fixture()
+      assert %Ecto.Changeset{} = Settings.change_facebook_page(facebook_page)
+    end
+  end
 end

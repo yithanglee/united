@@ -111,10 +111,12 @@ defmodule FacebookHelper do
     end
   end
 
-  def get_user_manage_pages(user_id \\ @user_id) do
+  def get_user_manage_pages(user_id) do
+    user = United.Settings.get_user_by_fb_user_id(user_id)
+
     url =
       "https://graph.facebook.com/#{user_id}/accounts?fields=name,access_token&access_token=#{
-        @user_access_token
+        user.user_access_token
       }"
 
     res = HTTPoison.get(url)

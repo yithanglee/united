@@ -1,0 +1,33 @@
+<h1>Show Facebook page</h1>
+
+<ul>
+
+  <li>
+    <strong>User:</strong>
+    <%= @facebook_page.user_id %>
+  </li>
+
+  <li>
+    <strong>Name:</strong>
+    <%= @facebook_page.name %>
+  </li>
+
+  <li>
+    <strong>Page:</strong>
+    <%= @facebook_page.page_id %>
+  </li>
+
+  <li>
+    <strong>Page access token:</strong>
+    <%= @facebook_page.page_access_token %>
+  </li>
+
+  <li>
+    <strong>Shop:</strong>
+    <%= @facebook_page.shop_id %>
+  </li>
+
+</ul>
+
+<span><%= link "Edit", to: Routes.facebook_page_path(@conn, :edit, @facebook_page) %></span>
+<span><%= link "Back", to: Routes.facebook_page_path(@conn, :index) %></span>

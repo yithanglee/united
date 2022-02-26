@@ -2,13 +2,18 @@ defmodule UnitedWeb.PageController do
   use UnitedWeb, :controller
   @app_secret "2e210fa67f156f26d8d9adb2f5524b9e"
   @app_id "716495772618929"
+  require IEx
+
   def fb_login(conn, _params) do
     redir = "https://ff57-115-164-74-68.ngrok.io/fb_callback"
+    user_id = conn.private.plug_session["current_user"].id
 
     conn
     |> redirect(
       external:
-        "https://www.facebook.com/v13.0/dialog/oauth?client_id=#{@app_id}&redirect_uri=#{redir}"
+        "https://www.facebook.com/v13.0/dialog/oauth?client_id=#{@app_id}&redirect_uri=#{redir}&state={user_id=#{
+          user_id
+        }}"
     )
   end
 
@@ -24,18 +29,43 @@ defmodule UnitedWeb.PageController do
     # conn
     # |> redirect(external: url)
     res = HTTPoison.get(url)
+    IO.inspect(res)
 
     case res do
       {:ok, resp} ->
         %{"access_token" => access_token, "token_type" => token_type} = Jason.decode!(resp.body)
         IO.inspect(access_token)
 
+        [_key, id] =
+          conn.params["state"]
+          |> String.replace("{", "")
+          |> String.replace("}", "")
+          |> String.split("=")
+
+        # current_user = conn.private.plug_session["current_user"]
+
+        user = United.Settings.get_user!(id)
+
+        %{"data" => %{"user_id" => fb_user_id}} = FacebookHelper.inspect_token(access_token)
+
+        {:ok, user} =
+          United.Settings.update_user(user, %{
+            fb_user_id: fb_user_id,
+            user_access_token: access_token
+          })
+
+        conn
+        |> put_session(:current_user, BluePotion.s_to_map(user))
+        |> put_flash(:info, "FB token recorded!")
+        |> redirect(to: "/admin/blogs")
+
       _ ->
         nil
-    end
 
-    IO.inspect(res)
-    render(conn, "index.html")
+        conn
+        |> put_flash(:info, "FB token recorded!")
+        |> redirect(to: "/admin/blogs")
+    end
   end
 
   def index(conn, _params) do

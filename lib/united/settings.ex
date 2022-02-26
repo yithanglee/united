@@ -37,6 +37,10 @@ defmodule United.Settings do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  def get_user_by_fb_user_id(id) do
+    Repo.get_by(User, fb_user_id: id)
+  end
+
   @doc """
   Creates a user.
 
@@ -256,7 +260,11 @@ defmodule United.Settings do
         filename = sm.s3_url |> String.replace("/images/uploads/", "")
         Task.start_link(United, :s3_large_upload, [filename])
 
-        StoredMedia.changeset(sm, %{s3_url: "https://damien-bucket.ap-south-1.linodeobjects.com/#{filename}"}) |> Repo.update
+        StoredMedia.changeset(sm, %{
+          s3_url: "https://damien-bucket.ap-south-1.linodeobjects.com/#{filename}"
+        })
+        |> Repo.update()
+
         # goto s3
         nil
 
@@ -696,5 +704,101 @@ defmodule United.Settings do
   """
   def change_shop_product_tag(%ShopProductTag{} = shop_product_tag, attrs \\ %{}) do
     ShopProductTag.changeset(shop_product_tag, attrs)
+  end
+
+  alias United.Settings.FacebookPage
+
+  @doc """
+  Returns the list of facebook_pages.
+
+  ## Examples
+
+      iex> list_facebook_pages()
+      [%FacebookPage{}, ...]
+
+  """
+  def list_facebook_pages do
+    Repo.all(FacebookPage)
+  end
+
+  @doc """
+  Gets a single facebook_page.
+
+  Raises `Ecto.NoResultsError` if the Facebook page does not exist.
+
+  ## Examples
+
+      iex> get_facebook_page!(123)
+      %FacebookPage{}
+
+      iex> get_facebook_page!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_facebook_page!(id), do: Repo.get!(FacebookPage, id)
+
+  @doc """
+  Creates a facebook_page.
+
+  ## Examples
+
+      iex> create_facebook_page(%{field: value})
+      {:ok, %FacebookPage{}}
+
+      iex> create_facebook_page(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_facebook_page(attrs \\ %{}) do
+    %FacebookPage{}
+    |> FacebookPage.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a facebook_page.
+
+  ## Examples
+
+      iex> update_facebook_page(facebook_page, %{field: new_value})
+      {:ok, %FacebookPage{}}
+
+      iex> update_facebook_page(facebook_page, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_facebook_page(%FacebookPage{} = facebook_page, attrs) do
+    facebook_page
+    |> FacebookPage.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a facebook_page.
+
+  ## Examples
+
+      iex> delete_facebook_page(facebook_page)
+      {:ok, %FacebookPage{}}
+
+      iex> delete_facebook_page(facebook_page)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_facebook_page(%FacebookPage{} = facebook_page) do
+    Repo.delete(facebook_page)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking facebook_page changes.
+
+  ## Examples
+
+      iex> change_facebook_page(facebook_page)
+      %Ecto.Changeset{data: %FacebookPage{}}
+
+  """
+  def change_facebook_page(%FacebookPage{} = facebook_page, attrs \\ %{}) do
+    FacebookPage.changeset(facebook_page, attrs)
   end
 end
