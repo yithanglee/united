@@ -125,6 +125,10 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "repopulate_comments" ->
+          lv = United.Settings.get_live_video!(params["live_video_id"])
+          FacebookHelper.get_live_video(lv.live_id, lv.facebook_page.page_access_token, lv)
+
         "get_videos" ->
           FacebookHelper.page_videos(params["pat"])
 

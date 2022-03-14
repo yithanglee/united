@@ -2,24 +2,31 @@ defmodule UnitedWeb.PageController do
   use UnitedWeb, :controller
   @app_secret Application.get_env(:united, :facebook)[:app_secret]
   @app_id Application.get_env(:united, :facebook)[:app_id]
+  @fb_callback Application.get_env(:united, :facebook)[:callback_url]
   require IEx
 
   def fb_login(conn, _params) do
-    redir = "https://ff57-115-164-74-68.ngrok.io/fb_callback"
+    # redir = "https://ff57-115-164-74-68.ngrok.io/fb_callback"
+    redir = @fb_callback
     user_id = conn.private.plug_session["current_user"].id
 
+    IO.inspect(redir)
+
+    link =
+      "https://www.facebook.com/v13.0/dialog/oauth?client_id=#{@app_id}&redirect_uri=#{redir}&state={user_id=#{
+        user_id
+      }}"
+
+    IO.inspect(link)
+
     conn
-    |> redirect(
-      external:
-        "https://www.facebook.com/v13.0/dialog/oauth?client_id=#{@app_id}&redirect_uri=#{redir}&state={user_id=#{
-          user_id
-        }}"
-    )
+    |> redirect(external: link)
   end
 
   def fb_callback(conn, %{"code" => code} = params) do
     IO.inspect(params)
-    redir = "https://ff57-115-164-74-68.ngrok.io/fb_callback"
+    # redir = "https://ff57-115-164-74-68.ngrok.io/fb_callback"
+    redir = @fb_callback
 
     url =
       "https://graph.facebook.com/v13.0/oauth/access_token?client_id=#{@app_id}&redirect_uri=#{
@@ -57,7 +64,7 @@ defmodule UnitedWeb.PageController do
         conn
         |> put_session(:current_user, BluePotion.s_to_map(user))
         |> put_flash(:info, "FB token recorded!")
-        |> redirect(to: "/admin/blogs")
+        |> redirect(to: "/admin/dashboard")
 
       _ ->
         nil

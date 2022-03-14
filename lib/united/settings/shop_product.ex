@@ -10,6 +10,7 @@ defmodule United.Settings.ShopProduct do
     field :retail_price, :float
     field :shop_id, :integer
     field :short_desc, :binary
+    field :item_code, :string
 
     timestamps()
   end
@@ -18,6 +19,7 @@ defmodule United.Settings.ShopProduct do
   def changeset(shop_product, attrs) do
     shop_product
     |> cast(attrs, [
+      :item_code,
       :cost_price,
       :long_desc,
       :short_desc,

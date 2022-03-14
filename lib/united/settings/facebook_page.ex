@@ -8,7 +8,7 @@ defmodule United.Settings.FacebookPage do
     field :page_id, :string
     field :shop_id, :integer
     field :user_id, :integer
-
+    has_many(:live_videos, United.Settings.LiveVideo, foreign_key: :facebook_page_id)
     timestamps()
   end
 

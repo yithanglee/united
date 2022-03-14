@@ -46,7 +46,8 @@ config :blue_potion,
 config :united, :facebook,
   app_token: System.get_env("APP_TOKEN"),
   app_secret: System.get_env("APP_SECRET"),
-  app_id: System.get_env("APP_ID")
+  app_id: System.get_env("APP_ID"),
+  callback_url: System.get_env("FB_CALLBACK")
 
 config :ex_aws,
   access_key_id: "E5TQQRK798E01MT3RPRP",

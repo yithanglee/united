@@ -67,55 +67,75 @@ defmodule FacebookHelper do
   def page_videos(page_access_token) do
     pat = page_access_token
     page = United.Settings.get_facebook_page_by_pat(pat) |> List.first()
+
     url = "https://graph.facebook.com/#{page.page_id}?fields=live_videos&access_token=#{pat}"
 
     res = HTTPoison.get(url)
 
-    case res do
-      {:ok, resp} ->
-        body = Jason.decode!(resp.body)
+    live =
+      case res do
+        {:ok, resp} ->
+          body = Jason.decode!(resp.body)
+          IO.inspect(body)
+          %{"live_videos" => %{"data" => videos}} = body
+          IO.inspect(videos)
 
-        %{"live_videos" => %{"data" => videos}} = body
-        IO.inspect(videos)
+          for %{
+                "embed_html" => embed_html,
+                "id" => live_id,
+                "status" => status
+              } = video <- videos do
+            check = United.Settings.get_live_video_by_fb_id(live_id)
 
-        live_now = Enum.filter(videos, &(&1["status"] == "LIVE")) |> List.first()
+            live_video =
+              if check != nil do
+                check
+              else
+                {:ok, lv} =
+                  United.Settings.create_live_video(
+                    video
+                    |> Map.put("facebook_page_id", page.id)
+                    |> Map.put("live_id", live_id)
+                    |> Map.delete("id")
+                  )
 
-        IO.inspect(live_now)
-
-        sample = %{
-          "embed_html" =>
-            "<iframe allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\" allowfullscreen=\"true\" frameborder=\"0\" height=\"360\" scrolling=\"no\" src=\"https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fdamienslab%2Fvideos%2F539317677832076%2F&width=640\" style=\"border:none;overflow:hidden\" width=\"640\"></iframe>",
-          "id" => "412049180672738",
-          "status" => "LIVE",
-          "title" => "test webhook"
-        }
-
-        check = United.Settings.get_live_video_by_fb_id(live_now["id"])
-
-        live_video =
-          if check != nil do
-            check
-          else
-            {:ok, lv} =
-              United.Settings.create_live_video(
-                live_now
-                |> Map.put("facebook_page_id", page.id)
-                |> Map.put("live_id", live_now["id"])
-                |> Map.delete("id")
-              )
-
-            lv
+                lv
+              end
           end
 
-        get_live_video(live_now["id"], pat)
-        # stream_comments(live_now["id"])
+          live_now = Enum.filter(videos, &(&1["status"] == "LIVE")) |> List.first()
 
-        live_video |> BluePotion.s_to_map()
-    end
+          if live_now != nil do
+            check = United.Settings.get_live_video_by_fb_id(live_now["id"])
+
+            live_video =
+              if check != nil do
+                check
+              else
+                {:ok, lv} =
+                  United.Settings.create_live_video(
+                    live_now
+                    |> Map.put("facebook_page_id", page.id)
+                    |> Map.put("live_id", live_now["id"])
+                    |> Map.delete("id")
+                  )
+
+                lv
+              end
+
+            get_live_video(live_now["id"], pat, live_video)
+            # stream_comments()
+            Task.start_link(__MODULE__, :stream_comments, [live_now["id"]])
+
+            live_video |> BluePotion.s_to_map()
+          end
+      end
+
+    %{live: live, all: page.live_videos |> Enum.map(&BluePotion.s_to_map(&1))}
   end
 
-  def get_live_video(live_now, page_access_token) do
-    IO.inspect(live_now)
+  def get_live_video(live_now, page_access_token, %United.Settings.LiveVideo{} = live_video) do
+    IO.inspect(live_video)
 
     url =
       "https://graph.facebook.com/#{live_now}?fields=comments&access_token=#{page_access_token}"
@@ -144,21 +164,25 @@ defmodule FacebookHelper do
                 pv
             end
 
-          United.Settings.create_video_comment(%{
-            ms_id: ms_id,
-            page_visitor_id: page_visitor.id,
-            message: message,
-            created_at: created_at
-          })
+          a =
+            United.Settings.create_video_comment(%{
+              ms_id: ms_id,
+              page_visitor_id: page_visitor.id,
+              message: message,
+              created_at: created_at,
+              live_video_id: live_video.id
+            })
+
+          a
         end
 
         if "next" in Map.keys(paging) do
-          next_comment_pages(paging["next"])
+          next_comment_pages(paging["next"], live_video)
         end
     end
   end
 
-  def next_comment_pages(url) do
+  def next_comment_pages(url, %United.Settings.LiveVideo{} = live_video) do
     res = HTTPoison.get(url)
 
     case res do
@@ -183,16 +207,21 @@ defmodule FacebookHelper do
                 pv
             end
 
-          United.Settings.create_video_comment(%{
-            ms_id: ms_id,
-            page_visitor_id: page_visitor.id,
-            message: message,
-            created_at: created_at
-          })
+          b =
+            United.Settings.create_video_comment(%{
+              ms_id: ms_id,
+              page_visitor_id: page_visitor.id,
+              message: message,
+              created_at: created_at,
+              live_video_id: live_video.id
+            })
+
+          IO.inspect(b)
+          b
         end
 
         if "next" in Map.keys(paging) do
-          next_comment_pages(paging["next"])
+          next_comment_pages(paging["next"], live_video)
         end
 
       _ ->
@@ -254,10 +283,11 @@ defmodule FacebookHelper do
   def inspect_token(token) do
     %{
       "access_token" => app_token,
-      "token_type" => token
+      "token_type" => token2
     } = get_app_token()
 
     url = "https://graph.facebook.com/debug_token?input_token=#{token}&access_token=#{app_token}"
+    IO.inspect(url)
     res = HTTPoison.get(url)
 
     case res do

@@ -24,7 +24,7 @@ defmodule UnitedWeb.LoginController do
         conn
         |> put_session(:current_user, BluePotion.s_to_map(user))
         |> put_flash(:info, "Welcome!")
-        |> redirect(to: "/admin/blogs")
+        |> redirect(to: "/admin/dashboard")
 
       {:error, cg} ->
         conn
@@ -41,7 +41,7 @@ defmodule UnitedWeb.LoginController do
       conn
       |> put_session(:current_user, BluePotion.s_to_map(user))
       |> put_flash(:info, "Welcome!")
-      |> redirect(to: "/admin/blogs")
+      |> redirect(to: "/admin/dashboard")
     else
       conn
       |> put_flash(:info, "Denied!")

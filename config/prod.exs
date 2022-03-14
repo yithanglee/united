@@ -13,16 +13,16 @@ use Mix.Config
 #   url: [host: "example.com", port: 80],
 #   cache_static_manifest: "priv/static/cache_manifest.json"
 config :united, UnitedWeb.Endpoint,
-  url: [host: "damienslab.ga", port: 5293],
+  url: [host: "damienslab.ml", port: 5293],
   http: [port: 5292],
   https: [
     port: 5293,
     otp_app: :united,
-    keyfile: "/etc/letsencrypt/live/damienslab.ga/privkey.pem",
-    cacertfile: "/etc/letsencrypt/live/damienslab.ga/fullchain.pem",
-    certfile: "/etc/letsencrypt/live/damienslab.ga/cert.pem"
+    keyfile: "/etc/letsencrypt/live/damienslab.ml/privkey.pem",
+    cacertfile: "/etc/letsencrypt/live/damienslab.ml/fullchain.pem",
+    certfile: "/etc/letsencrypt/live/damienslab.ml/cert.pem"
   ],
-  check_origin: ["https://damienslab.ga", "https://www.damienslab.ga", "http://damienslab.ga"]
+  check_origin: ["https://damienslab.ml", "https://www.damienslab.ml", "http://damienslab.ml"]
 
 # Do not print debug messages in production
 config :logger, level: :info

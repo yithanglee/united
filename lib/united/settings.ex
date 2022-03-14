@@ -738,7 +738,11 @@ defmodule United.Settings do
   def get_facebook_page!(id), do: Repo.get!(FacebookPage, id)
 
   def get_facebook_page_by_pat(page_access_token) do
-    Repo.all(from p in FacebookPage, where: p.page_access_token == ^page_access_token)
+    Repo.all(
+      from p in FacebookPage,
+        where: p.page_access_token == ^page_access_token,
+        preload: [:live_videos]
+    )
   end
 
   @doc """
@@ -835,7 +839,7 @@ defmodule United.Settings do
       ** (Ecto.NoResultsError)
 
   """
-  def get_live_video!(id), do: Repo.get!(LiveVideo, id)
+  def get_live_video!(id), do: Repo.get!(LiveVideo, id) |> Repo.preload(:facebook_page)
 
   def get_live_video_by_fb_id(id) do
     Repo.all(from lv in LiveVideo, where: lv.live_id == ^id) |> List.first()

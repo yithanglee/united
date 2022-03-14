@@ -11,7 +11,7 @@ defmodule United.Settings.LiveVideo do
     field :live_id, :string
     field :picture, :binary
     field :title, :binary
-
+    has_many(:video_comments, United.Settings.VideoComment, foreign_key: :live_video_id)
     timestamps()
   end
 
@@ -30,7 +30,7 @@ defmodule United.Settings.LiveVideo do
     |> validate_required([
       :live_id,
       :facebook_page_id,
-      :title,
+      # :title,
       # :description,
       :embed_html
       # :picture,

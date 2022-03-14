@@ -1,6 +1,6 @@
 <div class="container">
-  <div class="row py-4">
-    <div class="col-12 offset-lg-1 col-lg-10 text-left">
+  <div class="contents py-4">
+    <div class="px-2 col-6 text-left">
       <div class="card">
         <div class="card-body">
           <p class="lead">Things to do:</p>
@@ -24,37 +24,402 @@
               <div class="btn btn-sm btn-success" onclick="get_pages()">Query</div>
               <ul id="fb_pages">
               </ul>
+
             </li>
           </ul>
+        </div>
+       
+      </div>
+    </div>
+
+    <div class="px-2 col-6 text-left">
+      <div class="card">
+        <div class="card-body">
+          <p class="lead">Live Video:</p>
+          <ul>
+            <li>Comments
+              <div  id="tab1">
+                
+              </div>
+            </li>
+           
+          </ul>
+        </div>
+       
+      </div>
+    </div>
+
+    <div class="px-2 col-6 text-left">
+      <div class="card">
+        <div class="card-body">
+          <p class="lead">Processed Orders:</p>
+          <ul>
+            <li>Orders
+              <div  id="tab2">
+                
+              </div>
+            </li>
+           
+          </ul>
+        </div>
+       
+      </div>
+    </div>
+
+  </div>
+
+
+</div>
+<div class="container">
+  
+  <div class="row">
+  <div class=" col-12 text-left">
+    <div class="card">
+      <div class="card-body">
+        <div class="col-12" id="content">
+        </div>
+        <div id="subcontent" style="display: none;">
         </div>
       </div>
     </div>
   </div>
 </div>
+</div>
 
 <script type="text/javascript">
+
+    $('.contents').slick({
+        arrows: false,
+        dots: true,
+        variableWidth: false,
+        infinite: true,
+        speed: 300,
+        slidesToShow: 2,
+        slidesToScroll: 2,
+        responsive: [{
+            breakpoint: 370,
+            settings: {
+                slidesToShow: 1,
+                slidesToScroll: 1,
+            }
+        }]
+    });
+
 var pages = [];
 
 function get_pages() {
+  App.loading();
   pages = App.api("get_pages", { id: "<%= @conn.private.plug_session["current_user"].fb_user_id %>" });
-
+$("#fb_pages").html('')
   pages.forEach((v,i) => {
 
-      $("#fb_pages").append(`<li>`+v.name+` <span class="badge bg-primary">`+v.page_id+`</span>
-            <div class="btn btn-sm btn-primary" onclick="get_videos('`+v.page_access_token+`')">Check LiveVideos</div>
-            <ul id="fb_videos">
+      $("#fb_pages").append(`<li>
+        <div class="d-flex justify-content-between align-items-center">
+          <div ><span>
+        `+v.name+` </span><br><span class="badge bg-primary">`+v.page_id+`</span>
+          </div>
+          <div >
+            <div class="btn btn-sm btn-primary" onclick="get_videos('`+v.page_access_token+`', '`+v.page_id+`')">Check LiveVideos</div>
+          </div>
+        </div>
+            <ul page_id="`+v.page_id+`" class="pt-4 fb_videos d-none">
                 
             </ul>
-        </li>`)
+             <ul page_id="`+v.page_id+`" class="py-4 fb_videos2">
+              </ul>
+
+        </li>
+
+
+
+        `)
   })
+  App.loading();
 
 }
 
-function get_videos(pat) {
-var res =
-    App.api("get_videos", {pat: pat});
+function get_videos(pat, page_id) {
+  App.loading();
+  var res = App.api("get_videos", {pat: pat});
+ 
+  if (res.live != null) {
+    $(".fb_videos[page_id='"+page_id+"']").html(`<li>`+res.live.embed_html+`</li>`)
+  }
+  $(".fb_videos2").html('')
+  $(".fb_videos2[page_id='"+page_id+"']").html('')
+  res.all.forEach((v,i) => {
+  $(".fb_videos2[page_id='"+page_id+"']").append(`
 
-    $("#fb_videos").html(`<li>`+res.embed_html+`</li>`)
+    <li>
 
+<div class="d-flex justify-content-between">
+  <div>
+      `+v.title+` <br><small class="text-secondary">`+v.live_id+`</small>
+  </div>
+  <div>
+      <div class="btn btn-sm btn-outline-primary" onclick="check_video_comment('`+v.id+`')">Check Comments</div>
+      <div class="btn btn-sm btn-outline-warning" onclick="process_video_comment('`+v.id+`')">Process into Orders</div>
+  </div>
+</div>
+
+
+  </li>`)
+  })
+  App.loading();
 }
+var random_id = makeid(4);
+
+function repopulate_comments(live_id) {
+  App.show();
+  App.api("repopulate_comments", {live_video_id: live_id}) 
+  check_video_comment(live_id)
+}
+
+function process_video_comment(live_id) {
+    $("div#tab2").html('')
+}
+
+function check_video_comment(live_id) {
+  
+  $("div#tab1").html('')
+  console.log(live_id)
+  var comments = new phoenixModel({
+    data: {preloads: ["page_visitor"], "live_video_id": live_id},
+    moduleName: "VideoComment",
+    link: "VideoComment",
+    tableSelector: "#" + random_id,
+    columns: [{
+      data: "id",
+      label: "id"
+    }, {
+      data: "page_visitor.name",
+      label: "name"
+    }, {
+      data: "message",
+      label: "Message"
+    }, {
+      data: "id",
+      label: "Action"
+    }],
+    customCols: [
+      
+      'id',
+    ],
+    buttons: [{
+      buttonType: "grouped",
+      name: "Manage",
+      color: "outline-warning",
+      buttonList: [
+        {
+          name: "Edit",
+          iconName: "fa fa-edit",
+          color: "btn-sm btn-outline-warning",
+          onClickFunction: editData,
+          fnParams: {
+            drawFn: enlargeModal,
+            customCols: [{
+              name: 'General',
+              list: ['id', 'message']
+            }]
+          }
+        },
+
+        {
+          name: "Delete",
+          iconName: "fa fa-trash",
+          color: "outline-danger",
+          onClickFunction: deleteData,
+          fnParams: {}
+        }
+      ],
+      fnParams: {
+
+      }
+    }, ]
+  })
+  App.Page.createTable(random_id, "#tab1")
+  populateTable(comments)
+
+
+
+  comments.table.on("draw", function(){
+
+    if ($("button[data-module='repopulate_comment']").length == 0) {
+
+      $(comments.tableSelector).closest(".table-responsive").find( ".module_buttons" ).append(`<button type="submit" onclick="repopulate_comments('`+live_id+`')" class="btn btn-fill btn-success" data-href="" data-module="repopulate_comment" data-ref="">
+                  <i class="fa fa-edit"></i> Capture Comments</button>`)
+    }
+
+    App.hide();
+  })
+}
+
+
+var list = [{
+  icon: "list",
+  title: "Blogs",
+  active: true,
+  content: `<div id="tabs1"></div>`,
+}, {
+  icon: "collections",
+  title: "Images",
+  active: true,
+  content: `<div id="tabs2"></div>`,
+}, {
+  icon: "storefront",
+  title: "Shops",
+  active: true,
+  content: `<div id="tab3"></div>`,
+}, {
+  icon: "local_offer",
+  title: "Tags",
+  active: true,
+  content: `<div id="tab4"></div>`,
+}, {
+  icon: "category",
+  title: "Products",
+  active: true,
+  content: `<div id="tab5"></div>`,
+}]
+var random_id = makeid(4);
+var blogs = new phoenixModel({
+  moduleName: "Blog",
+  link: "Blog",
+  tableSelector: "#" + random_id,
+  columns: [{
+    data: "id",
+    label: "id"
+  }, {
+    data: "author",
+    label: "Author"
+  }, {
+    data: "title",
+    label: "Title"
+  }, {
+    data: "id",
+    label: "Action"
+  }],
+  customCols: [
+    'title',
+    'author', {
+      label: 'body',
+      editor: true
+    },
+    'excerpt',
+    'id',
+  ],
+  buttons: [{
+    buttonType: "grouped",
+    name: "Manage",
+    color: "outline-warning",
+    buttonList: [{
+        name: "Edit",
+        iconName: "fa fa-edit",
+        color: "btn-sm btn-outline-warning",
+        onClickFunction: editData,
+        fnParams: {
+          drawFn: enlargeModal,
+          customCols: [{
+            name: 'General',
+            list: ['id', 'title', 'author', 'excerpt']
+          }, {
+            name: 'Others',
+            list: [
+              { label: 'featured_image', alias: true },
+              {
+                editor: true,
+                label: 'body'
+              }
+            ]
+          }]
+        }
+      },
+
+      {
+        name: "Delete",
+        iconName: "fa fa-trash",
+        color: "outline-danger",
+        onClickFunction: deleteData,
+        fnParams: {}
+      }
+    ],
+    fnParams: {}
+  }, ]
+})
+App.Page.tablist("#content", list)
+App.Page.createTable(random_id, "#tabs1")
+populateTable(blogs)
+
+var random_id = makeid(4);
+var medias = new phoenixModel({
+  moduleName: "StoredMedia",
+  link: "StoredMedia",
+  tableSelector: "#" + random_id,
+  columns: [{
+    data: "id",
+    label: "id"
+  }, {
+    data: "name",
+    label: "File Name"
+  }, {
+    data: "s3_url",
+    label: "Url"
+  }, {
+    data: "id",
+    label: "Action"
+  }],
+  customCols: [
+    'name',
+    { label: 's3_url', upload: true },
+
+    'id',
+  ],
+  buttons: [{
+    buttonType: "grouped",
+    name: "Manage",
+    color: "outline-warning",
+    buttonList: [{
+        name: "Edit",
+        iconName: "fa fa-edit",
+        color: "btn-sm btn-outline-warning",
+        onClickFunction: editData,
+        fnParams: {
+
+          customCols: [{
+            name: 'General',
+            list: ['id', 'name']
+          }, {
+            name: 'Others',
+            list: ['f_size', 'f_extension', 's3_url']
+          }]
+        }
+      },
+
+      {
+        name: "Delete",
+        iconName: "fa fa-trash",
+        color: "outline-danger",
+        onClickFunction: deleteData,
+        fnParams: {}
+      }
+    ],
+    fnParams: {}
+  }, ]
+})
+
+App.Page.createTable(random_id, "#tabs2")
+populateTable(medias)
+
+var xcard = `
+        <div class=" ">
+            <div x-html="data.name"></div>
+            <img x-bind:src="data.s3_url" class="w-100 h-100">
+        </div>
+
+    `
+populateGridView(medias, xcard)
+
 </script>
+<script type="text/javascript" src="/js/shops.js"></script>
+<script type="text/javascript" src="/js/tags.js"></script>
+<script type="text/javascript" src="/js/products.js"></script>
