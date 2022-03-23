@@ -1161,4 +1161,571 @@ defmodule United.Settings do
   def change_page_visitor(%PageVisitor{} = page_visitor, attrs \\ %{}) do
     PageVisitor.changeset(page_visitor, attrs)
   end
+
+  alias United.Settings.CustomerOrder
+
+  @doc """
+  Returns the list of customer_orders.
+
+  ## Examples
+
+      iex> list_customer_orders()
+      [%CustomerOrder{}, ...]
+
+  """
+  def list_customer_orders do
+    Repo.all(CustomerOrder)
+  end
+
+  @doc """
+  Gets a single customer_order.
+
+  Raises `Ecto.NoResultsError` if the Customer order does not exist.
+
+  ## Examples
+
+      iex> get_customer_order!(123)
+      %CustomerOrder{}
+
+      iex> get_customer_order!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_customer_order!(id), do: Repo.get!(CustomerOrder, id)
+
+  @doc """
+  Creates a customer_order.
+
+  ## Examples
+
+      iex> create_customer_order(%{field: value})
+      {:ok, %CustomerOrder{}}
+
+      iex> create_customer_order(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_customer_order(attrs \\ %{}) do
+    %CustomerOrder{}
+    |> CustomerOrder.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a customer_order.
+
+  ## Examples
+
+      iex> update_customer_order(customer_order, %{field: new_value})
+      {:ok, %CustomerOrder{}}
+
+      iex> update_customer_order(customer_order, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_customer_order(%CustomerOrder{} = customer_order, attrs) do
+    customer_order
+    |> CustomerOrder.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a customer_order.
+
+  ## Examples
+
+      iex> delete_customer_order(customer_order)
+      {:ok, %CustomerOrder{}}
+
+      iex> delete_customer_order(customer_order)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_customer_order(%CustomerOrder{} = customer_order) do
+    Repo.delete(customer_order)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking customer_order changes.
+
+  ## Examples
+
+      iex> change_customer_order(customer_order)
+      %Ecto.Changeset{data: %CustomerOrder{}}
+
+  """
+  def change_customer_order(%CustomerOrder{} = customer_order, attrs \\ %{}) do
+    CustomerOrder.changeset(customer_order, attrs)
+  end
+
+  alias United.Settings.CustomerOrderLine
+
+  @doc """
+  Returns the list of customer_order_lines.
+
+  ## Examples
+
+      iex> list_customer_order_lines()
+      [%CustomerOrderLine{}, ...]
+
+  """
+  def list_customer_order_lines do
+    Repo.all(CustomerOrderLine)
+  end
+
+  @doc """
+  Gets a single customer_order_line.
+
+  Raises `Ecto.NoResultsError` if the Customer order line does not exist.
+
+  ## Examples
+
+      iex> get_customer_order_line!(123)
+      %CustomerOrderLine{}
+
+      iex> get_customer_order_line!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_customer_order_line!(id), do: Repo.get!(CustomerOrderLine, id)
+
+  @doc """
+  Creates a customer_order_line.
+
+  ## Examples
+
+      iex> create_customer_order_line(%{field: value})
+      {:ok, %CustomerOrderLine{}}
+
+      iex> create_customer_order_line(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_customer_order_line(attrs \\ %{}) do
+    %CustomerOrderLine{}
+    |> CustomerOrderLine.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a customer_order_line.
+
+  ## Examples
+
+      iex> update_customer_order_line(customer_order_line, %{field: new_value})
+      {:ok, %CustomerOrderLine{}}
+
+      iex> update_customer_order_line(customer_order_line, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_customer_order_line(%CustomerOrderLine{} = customer_order_line, attrs) do
+    customer_order_line
+    |> CustomerOrderLine.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a customer_order_line.
+
+  ## Examples
+
+      iex> delete_customer_order_line(customer_order_line)
+      {:ok, %CustomerOrderLine{}}
+
+      iex> delete_customer_order_line(customer_order_line)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_customer_order_line(%CustomerOrderLine{} = customer_order_line) do
+    Repo.delete(customer_order_line)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking customer_order_line changes.
+
+  ## Examples
+
+      iex> change_customer_order_line(customer_order_line)
+      %Ecto.Changeset{data: %CustomerOrderLine{}}
+
+  """
+  def change_customer_order_line(%CustomerOrderLine{} = customer_order_line, attrs \\ %{}) do
+    CustomerOrderLine.changeset(customer_order_line, attrs)
+  end
+
+  def save_sync_items(accounting_access_token, list) do
+    check =
+      Repo.all(from s in Shop, where: s.accounting_accesss_token == ^accounting_access_token)
+
+    shop =
+      if check != [] do
+        List.first(check)
+      else
+        nil
+      end
+
+    sample = %{
+      "address" => nil,
+      "balance" => -575,
+      "base_uom_id" => nil,
+      "code" => "RB",
+      "default_price" => 6.2,
+      "description" => "RIB",
+      "id" => 1,
+      "image_url" => nil,
+      "inserted_at" => "2021-12-30T03:12:16",
+      "lat" => nil,
+      "long" => nil,
+      "name" => "RIB",
+      "property" => "product",
+      "short_desc" => "RIB",
+      "updated_at" => "2021-12-30T03:12:16"
+    }
+
+    if shop != nil do
+      for a <- list do
+        item = BluePotion.string_to_atom(a, Map.keys(a))
+        ext_id = "mini_acc_item_id:#{item.id}"
+        rcheck = Repo.all(from sp in ShopProduct, where: sp.external_id == ^ext_id)
+
+        if rcheck == [] do
+          create_shop_product(%{
+            shop_id: shop.id,
+            short_desc: item.short_desc,
+            long_desc: item.description,
+            item_code: item.code,
+            retail_price: item.default_price,
+            name: item.name,
+            external_id: ext_id
+          })
+        else
+          sp = List.first(rcheck)
+
+          update_shop_product(sp, %{
+            shop_id: shop.id,
+            short_desc: item.short_desc,
+            long_desc: item.description,
+            item_code: item.code,
+            retail_price: item.default_price,
+            name: item.name
+          })
+        end
+      end
+    end
+  end
+
+  def update_customer_order_by_external_id(external_id, status) do
+    check = Repo.all(from co in CustomerOrder, where: co.external_id == ^external_id)
+
+    if check != [] do
+      co = List.first(check) |> Repo.preload(page_visitor: :facebook_page)
+
+      if status == :paid do
+        update_customer_order(co, %{status: :paid, delivery_status: :packing})
+
+        FacebookHelper.handlePostback(co.page_visitor.facebook_page, co.page_visitor, %{
+          "payload" => "thank_you_payment:#{co.id}"
+        })
+      else
+        update_customer_order(co, %{status: :pending_payment})
+
+        FacebookHelper.handlePostback(co.page_visitor.facebook_page, co.page_visitor, %{
+          "payload" => "failed_payment:#{co.id}"
+        })
+      end
+    end
+  end
+
+  def get_psid_orders(page_visitor) do
+    data = page_visitor |> Repo.preload(customer_orders: :customer_order_lines)
+
+    IO.inspect(data)
+
+    data
+    |> Map.get(:customer_orders)
+    |> Enum.filter(&(&1.status in [:pending_payment, :pending_confirmation]))
+  end
+
+  def finalize_order(%{"live_id" => live_id, "order" => order}) do
+    live_video = Repo.get_by(LiveVideo, live_id: live_id)
+
+    check =
+      Repo.all(
+        from co in CustomerOrder,
+          where:
+            co.live_video_id == ^live_video.id and
+              co.page_visitor_id == ^order["page_visitor"]["id"]
+      )
+
+    co =
+      if check == [] do
+        {:ok, co} =
+          create_customer_order(%{
+            date: Date.utc_today(),
+            live_video_id: live_video.id,
+            page_visitor_id: order["page_visitor"]["id"]
+          })
+
+        co
+      else
+        List.first(check)
+      end
+
+    Repo.delete_all(from col in CustomerOrderLine, where: col.customer_order_id == ^co.id)
+    indexes = order["items"] |> Map.keys()
+
+    for index <- indexes do
+      data = order["items"][index]
+
+      sample = %{
+        "data" => %{
+          "0" => %{
+            "created_at" => "2022-03-15T04:10:15",
+            "id" => "587",
+            "inserted_at" => "2022-03-15T04:10:19",
+            "live_video_id" => "37",
+            "message" => "P10",
+            "ms_id" => "650653936200605_650687916197207",
+            "page_visitor" => %{
+              "email" => "",
+              "facebook_page_id" => "",
+              "id" => "2",
+              "inserted_at" => "2022-02-26T16:07:17",
+              "name" => "Yithang Lee",
+              "phone" => "",
+              "profile_pic" => "",
+              "psid" => "3835391016494832",
+              "updated_at" => "2022-02-26T16:07:17"
+            },
+            "page_visitor_id" => "2",
+            "product" => %{
+              "cost_price" => "",
+              "external_id" => "",
+              "id" => "2",
+              "inserted_at" => "2022-01-05T02:05:48",
+              "item_code" => "P10",
+              "long_desc" => "",
+              "name" => "猪肉干",
+              "promo_price" => "",
+              "retail_price" => "46",
+              "shop_id" => "1",
+              "short_desc" => "Minced Pork",
+              "updated_at" => "2022-03-14T14:22:35"
+            },
+            "updated_at" => "2022-03-15T04:10:19"
+          }
+        },
+        "item_code" => "P10",
+        "item_name" => "猪肉干",
+        "price" => "46",
+        "qty" => "1"
+      }
+
+      IO.inspect(data)
+      product = data["data"]
+      IO.inspect(product)
+      qty = data["qty"] |> Integer.parse() |> elem(0)
+      cp = data["price"] |> Float.parse() |> elem(0)
+
+      external_id =
+        with true <- product["external_id"] == "",
+             sp <- United.Settings.get_shop_product!(product["id"]),
+             true <- sp != nil do
+          sp.external_id
+        else
+          _ ->
+            product["external_id"]
+        end
+
+      create_customer_order_line(%{
+        customer_order_id: co.id,
+        cost_price: cp,
+        qty: qty,
+        sub_total: (qty * cp) |> Float.round(2),
+        remarks: "customization that refers to size and color",
+        item_name: data["item_name"],
+        external_id: external_id,
+        shop_product_id: product["id"]
+      })
+
+      # allow user to check the details of the order
+      # next here is where the messenger will ask the user to fill in the delivery address
+    end
+  end
+
+  def update_co_address(
+        %{
+          "address" => address,
+          "id" => id,
+          "payment_method" => payment_method,
+          "phone" => phone,
+          "city" => city,
+          "postcode" => postcode,
+          "scope" => _scope,
+          "state" => state
+        } = params
+      ) do
+    payment_method =
+      case payment_method do
+        "Online Payment(FPX)" ->
+          "Online Payment(FPX)"
+
+        _ ->
+          payment_method
+      end
+
+    co = get_customer_order!(id) |> Repo.preload(page_visitor: :facebook_page)
+
+    update_customer_order(co, %{
+      payment_method: payment_method,
+      delivery_address: "#{address}\r\n#{city}\r\n#{postcode}\r\n#{state}",
+      delivery_phone: phone
+    })
+
+    FacebookHelper.handlePostback(co.page_visitor.facebook_page, co.page_visitor, %{
+      "payload" => "check_order"
+    })
+  end
+
+  def generate_lines(co) do
+    # co =
+    #   get_customer_order!(co_id)
+    #   |> Repo.preload([:customer_order_lines])
+
+    res = co |> Map.get(:customer_order_lines) |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
+    indexed = res |> Enum.with_index()
+
+    for {item, index} <- indexed do
+      {index,
+       %{
+         "item_id" => item.external_id |> String.replace("mini_acc_item_id:", ""),
+         "item_name" => item.item_name,
+         "line_total" => item.sub_total,
+         "qty" => item.qty,
+         "qty2" => item.qty,
+         "remarks" => item.remarks,
+         "sub_total" => item.sub_total,
+         "tax" => "0.00",
+         "tax_code" => "1",
+         "unit_cost" => item.cost_price
+       }}
+    end
+    |> Enum.into(%{})
+  end
+
+  def send_customer_order_to_accounting(co_id) do
+    co =
+      get_customer_order!(co_id)
+      |> Repo.preload([:customer_order_lines, page_visitor: [facebook_page: :shop]])
+
+    # get account id
+    # get sales person id?
+    {:ok, resp} =
+      Accounting.request("sales_users", %{
+        scope: "sales_users",
+        token: co.page_visitor.facebook_page.shop.accounting_accesss_token
+      })
+
+    sales_users = resp.body |> Jason.decode!()
+
+    {:ok, resp} =
+      Accounting.request("debtor", %{
+        scope: "create_debtor",
+        token: co.page_visitor.facebook_page.shop.accounting_accesss_token,
+        name: co.page_visitor.name,
+        code: co.page_visitor.psid,
+        email: "",
+        tel_no: co.delivery_phone,
+        address: co.delivery_address
+      })
+
+    debtor = resp.body |> Jason.decode!()
+
+    nparams = %{
+      "scope" => "create_co",
+      "account_document_line" => generate_lines(co),
+      "account_documents" => %{
+        "account_id" => "#{debtor["id"]}",
+        "created_by" => "#{List.last(sales_users)["id"]}",
+        "date" => Date.utc_today(),
+        "document_type" => "customer_order",
+        "id" => "0"
+      },
+      "model" => "account_documents"
+    }
+
+    {:ok, res} =
+      Accounting.post(
+        Jason.encode!(nparams),
+        co.page_visitor.facebook_page.shop.accounting_accesss_token
+      )
+
+    parent_acc_doc = res.body |> Jason.decode!()
+
+    nparam2 = %{
+      "scope" => "create_do",
+      "account_document_line" => generate_lines(co),
+      "account_documents" => %{
+        "account_id" => "#{debtor["id"]}",
+        "created_by" => "#{List.last(sales_users)["id"]}",
+        "date" => Date.utc_today(),
+        "delivery_address" => co.delivery_address,
+        "delivery_date" => Date.utc_today(),
+        "delivery_name" => co.page_visitor.name,
+        "delivery_phone" => co.delivery_phone,
+        "document_type" => "customer_delivery_order",
+        "id" => "0",
+        "parent_acc_doc_id" => parent_acc_doc["id"]
+      },
+      "model" => "account_documents"
+    }
+
+    {:ok, res} =
+      Accounting.post(
+        Jason.encode!(nparam2),
+        co.page_visitor.facebook_page.shop.accounting_accesss_token
+      )
+
+    customer_delivery_order = res.body |> Jason.decode!()
+
+    nparam3 = %{
+      "document_type" => "customer_delivery_order",
+      "id" => customer_delivery_order["id"],
+      "scope" => "post_account_document"
+    }
+
+    {:ok, res3} =
+      Accounting.post(
+        Jason.encode!(nparam3),
+        co.page_visitor.facebook_page.shop.accounting_accesss_token
+      )
+
+    invoice_object = res3.body |> Jason.decode!()
+
+    invoice_id = invoice_object["object"]["id"]
+
+    {:ok, co} = update_customer_order(co, %{external_id: "accounting_invoice_id:#{invoice_id}"})
+
+    {:ok, res} =
+      Accounting.get(
+        "get_payment_link?invoice_id=#{invoice_id}",
+        co.page_visitor.facebook_page.shop.accounting_accesss_token
+      )
+
+    {:ok, co} = update_customer_order(co, %{payment_gateway_link: res.body |> Jason.decode!()})
+
+    FacebookHelper.handlePostback(co.page_visitor.facebook_page, co.page_visitor, %{
+      "payload" => "make_payment"
+    })
+
+    IO.inspect(co)
+    IO.inspect(debtor)
+    IO.inspect(sales_users)
+    IO.inspect(parent_acc_doc)
+    IO.inspect(customer_delivery_order)
+    IO.inspect(res3.body |> Jason.decode!())
+    IO.inspect(res.body |> Jason.decode!())
+  end
 end

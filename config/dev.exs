@@ -66,3 +66,8 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
+
+config :united, :facebook,
+  accounting_url: System.get_env("ACCOUNTING_URL"),
+  base_url: System.get_env("FB_CALLBACK") |> String.split("/fb_callback") |> List.first(),
+  callback_url: System.get_env("FB_CALLBACK")

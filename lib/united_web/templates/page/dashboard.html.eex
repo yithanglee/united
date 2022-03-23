@@ -10,8 +10,8 @@
                 <%= if @conn.private.plug_session["current_user"] != nil do %>
                 <%= with true <- :fb_user_id in Map.keys(@conn.private.plug_session["current_user"]), 
                                true <-  @conn.private.plug_session["current_user"].fb_user_id != nil do %>
-                <li>FB User ID: <span class="badge bg-primary">
-                    <%= @conn.private.plug_session["current_user"].fb_user_id%></span></li>
+                <li>FB User ID: <small class="text-secondary">
+                    <%= @conn.private.plug_session["current_user"].fb_user_id%></small> <a class=" btn btn-primary btn-sm" href="/fb_relogin">ReConnect</a></li>
                 <% else 
                                  _ -> %>
                 <li> <a class=" btn btn-primary btn-sm" href="/fb_login">Connect</a></li>
@@ -34,6 +34,9 @@
 
     <div class="px-2 col-6 text-left">
       <div class="card">
+        <div class="card-body" id="current_live">
+          
+        </div>
         <div class="card-body">
           <p class="lead">Live Video:</p>
           <ul>
@@ -52,7 +55,15 @@
     <div class="px-2 col-6 text-left">
       <div class="card">
         <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            
           <p class="lead">Processed Orders:</p>
+          <div class="">
+            <div class="btn btn-sm btn-primary">Checkout All</div>
+
+            <div class="btn btn-sm btn-warning">Show Pick List</div>
+          </div>
+          </div>
           <ul>
             <li>Orders
               <div  id="tab2">
@@ -122,9 +133,7 @@ $("#fb_pages").html('')
             <div class="btn btn-sm btn-primary" onclick="get_videos('`+v.page_access_token+`', '`+v.page_id+`')">Check LiveVideos</div>
           </div>
         </div>
-            <ul page_id="`+v.page_id+`" class="pt-4 fb_videos d-none">
-                
-            </ul>
+            
              <ul page_id="`+v.page_id+`" class="py-4 fb_videos2">
               </ul>
 
@@ -139,11 +148,18 @@ $("#fb_pages").html('')
 }
 
 function get_videos(pat, page_id) {
+  $("#current_live").html(`
+
+ <div page_id="`+page_id+`" class="pt-4  d-flex w-100 fb_videos">
+                
+            </div>
+
+    `)
   App.loading();
   var res = App.api("get_videos", {pat: pat});
  
   if (res.live != null) {
-    $(".fb_videos[page_id='"+page_id+"']").html(`<li>`+res.live.embed_html+`</li>`)
+    $(".fb_videos[page_id='"+page_id+"']").html(res.live.embed_html)
   }
   $(".fb_videos2").html('')
   $(".fb_videos2[page_id='"+page_id+"']").html('')
@@ -152,15 +168,15 @@ function get_videos(pat, page_id) {
 
     <li>
 
-<div class="d-flex justify-content-between">
-  <div>
-      `+v.title+` <br><small class="text-secondary">`+v.live_id+`</small>
-  </div>
-  <div>
-      <div class="btn btn-sm btn-outline-primary" onclick="check_video_comment('`+v.id+`')">Check Comments</div>
-      <div class="btn btn-sm btn-outline-warning" onclick="process_video_comment('`+v.id+`')">Process into Orders</div>
-  </div>
-</div>
+      <div class="row my-4 d-flex justify-content-between">
+        <div class="col-8">
+            `+v.title+` <br><small class="text-secondary">`+v.live_id+`</small>
+        </div>
+        <div class="col-4">
+            <div class="btn btn-sm btn-outline-primary" onclick="check_video_comment('`+v.id+`', '`+v.live_id+`')">Check Comments</div>
+            <div class="btn btn-sm btn-outline-warning" onclick="process_video_comment('`+v.live_id+`')">Process into Orders</div>
+        </div>
+      </div>
 
 
   </li>`)
@@ -169,22 +185,104 @@ function get_videos(pat, page_id) {
 }
 var random_id = makeid(4);
 
-function repopulate_comments(live_id) {
+function repopulate_comments(live_id, fb_live_id) {
   App.show();
   App.api("repopulate_comments", {live_video_id: live_id}) 
-  check_video_comment(live_id)
+  check_video_comment(live_id, fb_live_id)
+  // process_video_comment(fb_live_id)
+}
+function finalize_order(live_id, page_visitor_id) {
+  console.log({live_id: live_id, page_visitor_id: page_visitor_id})
+  var res = 
+  window.current_orders.filter((order,i) => {
+    return order.page_visitor.id == page_visitor_id
+  })
+
+  console.log(res)
+
+  if (res.length > 0) {
+
+    // App.api("finalize_order", {live_id: live_id, order: res[0]})
+
+$.ajax({
+  url: "/api/webhook",
+  method: "POST",
+  data: {scope: "finalize_order", live_id: live_id, order: res[0]} 
+}).done(() => {
+  App.notify("Finalized!", {type: "info"})
+})
+
+
+
+  }
 }
 
 function process_video_comment(live_id) {
     $("div#tab2").html('')
+    var res =
+        App.api("process_into_order", {live_id: live_id})
+
+        window.current_orders = []
+
+    res.forEach((data, i) => {
+
+      var pv = data.page_visitor
+      var items = data.order  
+      var order = {page_visitor: pv, items: []}
+      var trs = [] 
+
+      items.forEach((item, ii) => {
+        order.items.push(item)
+        trs.push(`<tr valign="middle">
+
+          <td>`+item.item_name+`<br><small class="text-secondary">`+item.item_code+`</small></td>
+          <td>`+item.qty+`</td>
+          <td class="text-end format_float">`+item.price+`</td>
+
+          </tr>`)
+      })
+      current_orders.push(order)
+
+      $("div#tab2").append(`
+
+        <div class="card my-4">
+          <div class="card-header">`+pv.name+` </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th class="text-end">SubTotal (RM)</th>
+                </tr>
+              </thead>
+              <tbody>
+                `+trs.join("")+`
+              </tbody>
+
+            </table>
+            <div class="d-flex justify-content-end">
+            <div class="btn btn-sm btn-success" onclick="finalize_order('`+live_id+`','`+pv.id+`')">Finalize Order</div>
+            </div>
+          </div>
+        </div>
+
+        `)
+
+
+    })
+    formatDate();
+
+
 }
 
-function check_video_comment(live_id) {
+function check_video_comment(live_id, fb_live_id) {
+
   
   $("div#tab1").html('')
   console.log(live_id)
   var comments = new phoenixModel({
-    data: {preloads: ["page_visitor"], "live_video_id": live_id},
+    data: {pageLength: 10, preloads: ["page_visitor"], "live_video_id": live_id},
     moduleName: "VideoComment",
     link: "VideoComment",
     tableSelector: "#" + random_id,
@@ -246,11 +344,13 @@ function check_video_comment(live_id) {
 
     if ($("button[data-module='repopulate_comment']").length == 0) {
 
-      $(comments.tableSelector).closest(".table-responsive").find( ".module_buttons" ).append(`<button type="submit" onclick="repopulate_comments('`+live_id+`')" class="btn btn-fill btn-success" data-href="" data-module="repopulate_comment" data-ref="">
+      $(comments.tableSelector).closest(".table-responsive").find( ".module_buttons" ).append(`<button type="submit" onclick="repopulate_comments('`+live_id+`', '`+fb_live_id+`')" class="btn btn-fill btn-success" data-href="" data-module="repopulate_comment" data-ref="">
                   <i class="fa fa-edit"></i> Capture Comments</button>`)
     }
 
     App.hide();
+     process_video_comment(fb_live_id)
+      $('.contents').slick('slickGoTo', 2);
   })
 }
 
@@ -280,6 +380,11 @@ var list = [{
   title: "Products",
   active: true,
   content: `<div id="tab5"></div>`,
+}, {
+  icon: "list",
+  title: "FbPages",
+  active: true,
+  content: `<div id="tab6"></div>`,
 }]
 var random_id = makeid(4);
 var blogs = new phoenixModel({
@@ -423,3 +528,4 @@ populateGridView(medias, xcard)
 <script type="text/javascript" src="/js/shops.js"></script>
 <script type="text/javascript" src="/js/tags.js"></script>
 <script type="text/javascript" src="/js/products.js"></script>
+<script type="text/javascript" src="/js/fb_pages.js"></script>

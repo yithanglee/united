@@ -13,6 +13,11 @@ defmodule UnitedWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :blank do
+    plug(:put_layout, {UnitedWeb.LayoutView, :blank})
+    # plug(Materialize.Authorization)
+  end
+
   pipeline :frontend do
     plug(:put_layout, {UnitedWeb.LayoutView, :frontend})
     # plug(Materialize.Authorization)
@@ -37,6 +42,8 @@ defmodule UnitedWeb.Router do
     resources "/live_videos", LiveVideoController
     resources "/video_comments", VideoCommentController
     resources "/page_visitors", PageVisitorController
+    resources "/customer_orders", CustomerOrderController
+    resources "/customer_order_lines", CustomerOrderLineController
   end
 
   scope "/api", UnitedWeb do
@@ -72,11 +79,15 @@ defmodule UnitedWeb.Router do
   end
 
   scope "/", UnitedWeb do
+    pipe_through [:browser, :blank]
+    get "/show_page", PageController, :show_page
+  end
+
+  scope "/", UnitedWeb do
     pipe_through [:browser, :frontend]
-
     get "/fb_login", PageController, :fb_login
+    get "/fb_relogin", PageController, :fb_relogin
     get "/fb_callback", PageController, :fb_callback
-
     get "/*path", PageController, :index
   end
 end

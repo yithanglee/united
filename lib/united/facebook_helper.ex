@@ -2,6 +2,7 @@ defmodule FacebookHelper do
   import Ecto.Query
   import UnitedWeb.Gettext
   alias United.{Settings, Repo}
+  alias Settings.{ShopProduct, FacebookPage, PageVisitor}
 
   @app_secret Application.get_env(:united, :facebook)[:app_secret]
   @app_id Application.get_env(:united, :facebook)[:app_id]
@@ -61,6 +62,65 @@ defmodule FacebookHelper do
         # )
 
         true
+    end
+  end
+
+  def page_video_to_orders(live_id) do
+    page_visitors_data =
+      United.Settings.get_live_video_by_fb_id(live_id)
+      |> Repo.preload(video_comments: :page_visitor)
+      |> Map.get(:video_comments)
+      |> Enum.group_by(& &1.page_visitor)
+
+    # |> IO.inspect()
+    page_visitors = page_visitors_data |> Map.keys()
+
+    shop_products = Repo.all(ShopProduct)
+
+    translate_to_products = fn comment ->
+      products =
+        for sp <- shop_products do
+          with true <- comment.message != nil,
+               true <- comment.message |> String.contains?(sp.item_code) do
+            sp |> BluePotion.s_to_map()
+          else
+            _ ->
+              nil
+          end
+        end
+        |> Enum.reject(&(&1 == nil))
+        |> List.first()
+
+      Map.put(comment, :product, products)
+    end
+
+    for page_visitor <- page_visitors do
+      comments =
+        page_visitors_data[page_visitor]
+        |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+        |> Enum.map(&(&1 |> translate_to_products.()))
+        |> Enum.filter(&(&1.product != nil))
+
+      item_data = comments |> Enum.group_by(& &1.product)
+
+      items = Map.keys(item_data)
+
+      order =
+        for itemz <- items do
+          item = item_data[itemz] |> List.first()
+          IO.inspect(item)
+          qty = Enum.count(item_data[itemz])
+
+          %{
+            item_name: item.product.name,
+            item_code: item.product.item_code,
+            price: item.product.retail_price * qty,
+            qty: qty,
+            data: item.product
+          }
+        end
+
+      %{page_visitor: page_visitor |> BluePotion.s_to_map(), order: order}
     end
   end
 
@@ -145,39 +205,48 @@ defmodule FacebookHelper do
     case res do
       {:ok, resp} ->
         body = Jason.decode!(resp.body)
+        IO.inspect("res")
+        IO.inspect(body)
 
-        %{"comments" => %{"data" => comments, "paging" => paging}} = body
+        # %{"comments" => %{"data" => comments, "paging" => paging}} = body
+        case body do
+          %{"comments" => %{"data" => comments, "paging" => paging}} ->
+            for %{
+                  "created_time" => created_at,
+                  "from" => %{"id" => psid, "name" => visitor_name},
+                  "id" => ms_id,
+                  "message" => message
+                } = comment <- comments do
+              page_visitor =
+                with pv <- United.Settings.get_page_visitor_by_psid(psid),
+                     true <- pv != nil do
+                  pv
+                else
+                  _ ->
+                    {:ok, pv} =
+                      United.Settings.create_page_visitor(%{psid: psid, name: visitor_name})
 
-        for %{
-              "created_time" => created_at,
-              "from" => %{"id" => psid, "name" => visitor_name},
-              "id" => ms_id,
-              "message" => message
-            } = comment <- comments do
-          page_visitor =
-            with pv <- United.Settings.get_page_visitor_by_psid(psid),
-                 true <- pv != nil do
-              pv
-            else
-              _ ->
-                {:ok, pv} = United.Settings.create_page_visitor(%{psid: psid, name: visitor_name})
-                pv
+                    pv
+                end
+
+              a =
+                United.Settings.create_video_comment(%{
+                  ms_id: ms_id,
+                  page_visitor_id: page_visitor.id,
+                  message: message,
+                  created_at: created_at,
+                  live_video_id: live_video.id
+                })
+
+              a
             end
 
-          a =
-            United.Settings.create_video_comment(%{
-              ms_id: ms_id,
-              page_visitor_id: page_visitor.id,
-              message: message,
-              created_at: created_at,
-              live_video_id: live_video.id
-            })
+            if "next" in Map.keys(paging) do
+              next_comment_pages(paging["next"], live_video)
+            end
 
-          a
-        end
-
-        if "next" in Map.keys(paging) do
-          next_comment_pages(paging["next"], live_video)
+          _ ->
+            nil
         end
     end
   end
@@ -386,11 +455,13 @@ defmodule FacebookHelper do
     end
   end
 
-  def handleMessage(sender_psid, received_message) do
+  def handleMessage(page, page_visitor, received_message) do
     IO.inspect(received_message)
-    vc = Repo.get_by(VisitorCompany, psid: sender_psid)
-    visitor = Repo.get(Visitor, vc.visitor_id)
+
+    # visitor = Repo.get(Visitor, vc.visitor_id)
     lang = "en"
+
+    base_url = Application.get_env(:united, :facebook)[:base_url]
     # visitor.lang
     Gettext.put_locale(FbToolWeb.Gettext, lang)
 
@@ -417,99 +488,25 @@ defmodule FacebookHelper do
                         ),
                       "buttons" => [
                         %{
-                          "type" => "postback",
-                          "title" => "Buy Product",
-                          "payload" => "buy_product"
+                          "type" => "web_url",
+                          "url" => "#{base_url}/show_page",
+                          "title" => "Update Details",
+                          "webview_height_ratio" => "tall"
                         },
+                        # %{
+                        #   "type" => "postback",
+                        #   "title" => "Buy Product",
+                        #   "payload" => "buy_product"
+                        # },
                         %{
                           "type" => "postback",
                           "title" => "Check Order",
                           "payload" => "check_order"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-
-            vc.msg_state == "form_line1" ->
-              {:ok, vc} = Settings.update_visitor(visitor, %{line1: text})
-
-              {:ok, vc} = FbTool.Settings.update_visitor_company(vc, %{msg_state: "form_city"})
-
-              [
-                %{
-                  "text" => gettext("After type in the city, press enter:")
-                }
-              ]
-
-            vc.msg_state == "form_city" ->
-              {:ok, vc} = Settings.update_visitor(visitor, %{town: text})
-
-              {:ok, vc} =
-                FbTool.Settings.update_visitor_company(vc, %{msg_state: "form_postcode"})
-
-              [
-                %{
-                  "text" => gettext("After type in the postcode, press enter:")
-                }
-              ]
-
-            vc.msg_state == "form_postcode" ->
-              {:ok, vc} = Settings.update_visitor(visitor, %{postcode: text})
-
-              {:ok, vc} = FbTool.Settings.update_visitor_company(vc, %{msg_state: "form_state"})
-
-              [
-                %{
-                  "text" => gettext("After type in the state, press enter:")
-                }
-              ]
-
-            vc.msg_state == "form_state" ->
-              {:ok, vc} = Settings.update_visitor(visitor, %{state: text})
-
-              {:ok, vc} = FbTool.Settings.update_visitor_company(vc, %{msg_state: "checkout"})
-
-              existing_carts =
-                Repo.all(
-                  from c in Cart,
-                    where: c.status == ^"Pending Checkout" and c.visitor_id == ^vc.id
-                )
-
-              cart = hd(existing_carts)
-
-              {:ok, cart} =
-                Settings.update_cart(cart, %{
-                  line1: visitor.line1,
-                  town: visitor.town,
-                  state: visitor.state,
-                  postcode: visitor.postcode
-                })
-
-              [
-                receipt_template(cart, vc),
-                %{
-                  "attachment" => %{
-                    "type" => "template",
-                    "payload" => %{
-                      "template_type" => "button",
-                      "text" => gettext("What would you like to do now? "),
-                      "buttons" => [
-                        %{
-                          "type" => "postback",
-                          "title" => "Make Payment",
-                          "payload" => "pay_now"
                         },
                         %{
                           "type" => "postback",
-                          "title" => "Change address",
-                          "payload" => "form_line1"
-                        },
-                        %{
-                          "type" => "postback",
-                          "title" => "Continue Shopping",
-                          "payload" => "buy_product"
+                          "title" => "Live Agent",
+                          "payload" => "live_agent"
                         }
                       ]
                     }
@@ -518,7 +515,7 @@ defmodule FacebookHelper do
               ]
 
             true ->
-              {:ok, vc} = FbTool.Settings.update_visitor_company(vc, %{msg_state: "idle"})
+              # {:ok, vc} = FbTool.Settings.update_visitor_company(vc, %{msg_state: "idle"})
               [%{"text" => gettext("hi! We will get a human agent to contact you asap.")}]
           end
 
@@ -526,7 +523,7 @@ defmodule FacebookHelper do
           [%{"text" => gettext("hi! We dont process attachments at the moment.")}]
       end
 
-    callSendAPI(sender_psid, responses)
+    callSendAPI(page.page_access_token, page_visitor, responses)
   end
 
   # button type postback, web_url 
@@ -592,30 +589,117 @@ defmodule FacebookHelper do
     }
   end
 
-  def handlePostback(sender_psid, received_postback) do
-    vc = Repo.get_by(VisitorCompany, psid: sender_psid)
-
-    visitor = Repo.get(Visitor, vc.visitor_id)
+  def handlePostback(page, page_visitor, received_postback) do
     lang = "en"
 
+    base_url = Application.get_env(:united, :facebook)[:base_url]
     payload = received_postback["payload"]
 
     IO.puts(payload)
 
-    [code, value] = String.split(payload, "_")
-
     responses =
       cond do
+        String.contains?(payload, "payment_done") ->
+          co_id = String.split(payload, "payment_done:") |> List.last()
+          # United.Settings.send_customer_order_to_accounting(co_id)
+          [%{"text" => "Thank you for paying id: #{co_id}!"}]
+
+        String.contains?(payload, "pay_now") ->
+          co_id = String.split(payload, "pay_now:") |> List.last()
+          co = United.Settings.get_customer_order!(co_id)
+
+          case co.status do
+            :pending_payment ->
+              United.Settings.send_customer_order_to_accounting(co_id)
+              [%{"text" => "Invoice for id: #{co_id} will deliver to you soon!"}]
+
+            :paid ->
+              [%{"text" => "Order id: #{co_id} has been paid!"}]
+
+            :complete ->
+              [%{"text" => "Order id: #{co_id} is completed!"}]
+
+            _ ->
+              [%{"text" => "Order id: #{co_id} is processing!"}]
+          end
+
+        String.contains?(payload, "thank_you_payment") ->
+          co_id =
+            String.split(payload, "thank_you_payment:")
+            |> List.last()
+
+          [
+            %{
+              "text" => "Thank you for paying id: #{co_id}, we will prepare your delivery soon!"
+            }
+          ]
+
+        String.contains?(payload, "failed_payment") ->
+          co_id = String.split(payload, "failed_payment:") |> List.last()
+
+          [
+            %{"text" => "Payment for id: #{co_id} was not successful!"},
+            %{
+              "attachment" => %{
+                "type" => "template",
+                "payload" => %{
+                  "template_type" => "button",
+                  "text" => gettext("What would you like to do now? "),
+                  "buttons" => [
+                    %{
+                      "type" => "postback",
+                      "title" => "Make Payment",
+                      "payload" => "pay_now:#{co_id}"
+                    },
+                    %{
+                      "type" => "web_url",
+                      "url" => "#{base_url}/show_page?customer_order_id=#{co_id}",
+                      "title" => "Change address/payment",
+                      "webview_height_ratio" => "tall"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+
+        payload == "make_payment" ->
+          existing_carts = United.Settings.get_psid_orders(page_visitor)
+          co = hd(existing_carts)
+
+          total =
+            Enum.map(co.customer_order_lines, & &1.sub_total)
+            |> Enum.sum()
+            |> Float.round(2)
+
+          [
+            %{
+              "attachment" => %{
+                "type" => "template",
+                "payload" => %{
+                  "template_type" => "button",
+                  "text" => "Confirm to make payment, RM #{total}",
+                  "buttons" => [
+                    %{
+                      "type" => "web_url",
+                      "url" => co.payment_gateway_link,
+                      "title" => "Pay Now",
+                      "webview_height_ratio" => "tall"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+
         payload == "check_order" ->
-          existing_carts =
-            Repo.all(
-              from c in Cart,
-                where: c.status == ^"Pending Checkout" and c.visitor_id == ^visitor.id
-            )
+          existing_carts = United.Settings.get_psid_orders(page_visitor)
 
           if existing_carts != [] do
+            co = hd(existing_carts)
+
             [
-              receipt_template(hd(existing_carts), visitor),
+              receipt_template(hd(existing_carts), page_visitor),
               %{
                 "attachment" => %{
                   "type" => "template",
@@ -626,17 +710,13 @@ defmodule FacebookHelper do
                       %{
                         "type" => "postback",
                         "title" => "Make Payment",
-                        "payload" => "pay_now"
+                        "payload" => "pay_now:#{co.id}"
                       },
                       %{
-                        "type" => "postback",
+                        "type" => "web_url",
+                        "url" => "#{base_url}/show_page?customer_order_id=#{co.id}",
                         "title" => "Change address",
-                        "payload" => "form_line1"
-                      },
-                      %{
-                        "type" => "postback",
-                        "title" => "Continue Shopping",
-                        "payload" => "buy_product"
+                        "webview_height_ratio" => "tall"
                       }
                     ]
                   }
@@ -656,9 +736,14 @@ defmodule FacebookHelper do
                       ),
                     "buttons" => [
                       %{
+                        "type" => "web_url",
+                        "url" => "#{base_url}/show_page?customer_order_id=#{co.id}",
+                        "title" => "Update Details"
+                      },
+                      %{
                         "type" => "postback",
-                        "title" => "Buy Product",
-                        "payload" => "buy_product"
+                        "title" => "Check Status",
+                        "payload" => "check_status"
                       },
                       %{
                         "type" => "postback",
@@ -671,45 +756,6 @@ defmodule FacebookHelper do
               }
             ]
           end
-
-        payload == "buy_product" ->
-          # products = Repo.all(from p in Settings.Product, limit: 10)
-
-          # list_of_tiles =
-          #   for product <- products do
-          #     price =
-          #       if product.promo_price != nil do
-          #         product.promo_price
-          #       else
-          #         product.selling_price
-          #       end
-
-          #     tile_template(
-          #       product.name,
-          #       product.short_desc,
-          #       product.img_url,
-          #       [
-          #         button_template(
-          #           "how to use",
-          #           "/products/#{product.id}",
-          #           1
-          #         ),
-          #         button_template("Add to cart (#{price})", "", 0, "atc_#{product.id}"),
-          #         button_template("Remove from cart", "", 0, "rfc_#{product.id}")
-          #       ],
-          #       "/products/#{product.id}",
-          #       "viewproduct_#{product.id}"
-          #     )
-          #   end
-
-          # resps = list_template(list_of_tiles)
-          resps = %{}
-
-          [
-            %{
-              "text" => "We have the following products!"
-            }
-          ] ++ [resps]
 
         payload == "end_check" ->
           [
@@ -736,8 +782,8 @@ defmodule FacebookHelper do
           ]
 
         payload == "lang_zh" ->
-          FbTool.Settings.update_visitor(visitor, %{lang: "zh"})
-          Gettext.put_locale(EcomBackendWeb.Gettext, "zh")
+          # FbTool.Settings.update_visitor(visitor, %{lang: "zh"})
+          # Gettext.put_locale(EcomBackendWeb.Gettext, "zh")
 
           [
             %{
@@ -746,8 +792,8 @@ defmodule FacebookHelper do
           ]
 
         payload == "lang_en" ->
-          FbTool.Settings.update_visitor(visitor, %{lang: "en"})
-          Gettext.put_locale(EcomBackendWeb.Gettext, "en")
+          # FbTool.Settings.update_visitor(visitor, %{lang: "en"})
+          # Gettext.put_locale(EcomBackendWeb.Gettext, "en")
 
           [
             %{
@@ -756,14 +802,10 @@ defmodule FacebookHelper do
           ]
 
         payload == "checkout_now" ->
-          existing_carts =
-            Repo.all(
-              from c in Cart,
-                where: c.status == ^"Pending Checkout" and c.visitor_id == ^visitor.id
-            )
+          existing_carts = []
 
           [
-            receipt_template(hd(existing_carts), visitor),
+            receipt_template(hd(existing_carts), page_visitor),
             %{
               "attachment" => %{
                 "type" => "template",
@@ -792,375 +834,48 @@ defmodule FacebookHelper do
             }
           ]
 
-        # code == "atc" ->
-        #   # check if the visitor has a cart created...
-        #   existing_carts =
-        #     Repo.all(
-        #       from c in Cart,
-        #         where: c.status == ^"Pending Checkout" and c.visitor_id == ^visitor.id
-        #     )
-
-        #   gmt = Timex.now() |> Timex.shift(hours: 8)
-
-        #   cart =
-        #     if existing_carts == [] do
-        #       {:ok, cart} =
-        #         Settings.create_cart(%{
-        #           "status" => "Pending Checkout",
-        #           "visitor_id" => visitor.id,
-        #           "day" => gmt.day,
-        #           "month" => gmt.month,
-        #           "year" => gmt.year,
-        #           "company_id" => 0
-        #         })
-
-        #       cart
-        #     else
-        #       hd(existing_carts)
-        #     end
-
-        #   pp = Repo.get(Settings.Product, value)
-
-        #   unit_price = pp.promo_price |> String.replace("RM ", "") |> Float.parse() |> elem(0)
-
-        #   final_price = unit_price * 1
-        #   final_weight = pp.weight_kg * 1
-
-        #   data_list =
-        #     if cart.json_items != nil do
-        #       items = cart.json_items |> Jason.decode!()
-
-        #       need_add = Enum.any?(items, fn x -> x["id"] == pp.id end)
-
-        #       list =
-        #         for item <- items do
-        #           i = Repo.get(Settings.Product, item["product_id"])
-
-        #           price =
-        #             if i.promo_price != nil do
-        #               i.promo_price
-        #             else
-        #               i.selling_price
-        #             end
-
-        #           unit_price = price |> String.replace("RM ", "") |> Float.parse() |> elem(0)
-
-        #           qty =
-        #             if pp.id == item["id"] do
-        #               item["qty"] + 1
-        #             else
-        #               item["qty"]
-        #             end
-
-        #           final_price = unit_price * qty
-        #           final_weight = i.weight_kg * qty
-        #           {final_weight, final_price}
-        #         end
-
-        #       if need_add do
-        #         list
-        #       else
-        #         list ++ [{final_weight, final_price}]
-        #       end
-        #     else
-        #       # add new item to the json items.. 
-        #       [{final_weight, final_price}]
-        #     end
-
-        #   map = FbTool.s_to_map(pp)
-
-        #   itemz =
-        #     map
-        #     |> Map.delete(:long_d_desc)
-        #     |> Map.delete(:short_desc)
-        #     |> Map.put(:qty, 1)
-        #     |> Map.put(:product_id, pp.id)
-
-        #   json_items =
-        #     if cart.json_items != nil do
-        #       items = cart.json_items |> Jason.decode!()
-        #       IO.inspect(items)
-        #       need_add = Enum.any?(items, fn x -> x["id"] == itemz.id end)
-
-        #       lists =
-        #         for item <- items do
-        #           if itemz.id == item["id"] do
-        #             FbTool.string_to_atom(item, Map.keys(item)) |> Map.put(:qty, item["qty"] + 1)
-        #           else
-        #             FbTool.string_to_atom(item, Map.keys(item))
-        #           end
-        #         end
-        #         |> Enum.reject(fn x -> x == nil end)
-
-        #       if need_add do
-        #         lists
-        #       else
-        #         lists ++ [itemz]
-        #       end
-        #     else
-        #       [itemz]
-        #     end
-
-        #   sub_total =
-        #     data_list
-        #     |> Enum.map(fn x -> elem(x, 1) end)
-        #     |> Enum.sum()
-
-        #   weight =
-        #     data_list
-        #     |> Enum.map(fn x -> elem(x, 0) end)
-        #     |> Enum.sum()
-
-        #   company_tax = 1.00
-
-        #   {:ok, cart} =
-        #     Settings.update_cart(cart, %{
-        #       "sub_total" => sub_total,
-        #       "json_items" => Jason.encode!(json_items)
-        #     })
-
-        #   IO.inspect(json_items)
-
-        #   final_list =
-        #     for item <- json_items do
-        #       %{"text" => "#{item.name}\r\n#{item.qty}"}
-        #     end
-
-        #   button =
-        #     if visitor.line1 == nil do
-        #       %{"type" => "postback", "title" => "Yes", "payload" => "form_line1"}
-        #     else
-        #       %{"type" => "postback", "title" => "Yes", "payload" => "checkout_now"}
-        #     end
-
-        #   [%{"text" => gettext("Your current cart has:")}] ++
-        #     final_list ++
-        #     [
-        #       %{
-        #         "attachment" => %{
-        #           "type" => "template",
-        #           "payload" => %{
-        #             "template_type" => "button",
-        #             "text" => "Would you like to check out ?",
-        #             "buttons" => [
-        #               button,
-        #               %{"type" => "postback", "title" => "Later", "payload" => "buy_product"}
-        #             ]
-        #           }
-        #         }
-        #       }
-        #     ]
-
-        # code == "rfc" ->
-        #   # check if the visitor has a cart created...
-        #   existing_carts =
-        #     Repo.all(
-        #       from c in Cart,
-        #         where: c.status == ^"Pending Checkout" and c.visitor_id == ^visitor.id
-        #     )
-
-        #   gmt = Timex.now() |> Timex.shift(hours: 8)
-
-        #   cart =
-        #     if existing_carts == [] do
-        #       {:ok, cart} =
-        #         Settings.create_cart(%{
-        #           "status" => "Pending Checkout",
-        #           "visitor_id" => visitor.id,
-        #           "day" => gmt.day,
-        #           "month" => gmt.month,
-        #           "year" => gmt.year,
-        #           "company_id" => 0
-        #         })
-
-        #       cart
-        #     else
-        #       hd(existing_carts)
-        #     end
-
-        #   pp = Repo.get(Settings.Product, value)
-
-        #   unit_price = pp.promo_price |> String.replace("RM ", "") |> Float.parse() |> elem(0)
-
-        #   final_price = unit_price * 1
-        #   final_weight = pp.weight_kg * 1
-
-        #   data_list =
-        #     if cart.json_items != nil do
-        #       items = cart.json_items |> Jason.decode!()
-
-        #       need_deduct = Enum.any?(items, fn x -> x["id"] == pp.id end)
-
-        #       list =
-        #         for item <- items do
-        #           i = Repo.get(Settings.Product, item["product_id"])
-
-        #           price =
-        #             if i.promo_price != nil do
-        #               i.promo_price
-        #             else
-        #               i.selling_price
-        #             end
-
-        #           unit_price = price |> String.replace("RM ", "") |> Float.parse() |> elem(0)
-
-        #           qty =
-        #             if pp.id == item["id"] do
-        #               item["qty"] - 1
-        #             else
-        #               item["qty"]
-        #             end
-
-        #           final_price = unit_price * qty
-        #           final_weight = i.weight_kg * qty
-        #           {final_weight, final_price}
-        #         end
-
-        #       list
-        #     else
-        #       # add new item to the json items.. 
-        #       []
-        #     end
-
-        #   map = FbTool.s_to_map(pp)
-
-        #   itemz =
-        #     map
-        #     |> Map.delete(:long_d_desc)
-        #     |> Map.delete(:short_desc)
-        #     |> Map.put(:qty, 1)
-        #     |> Map.put(:product_id, pp.id)
-
-        #   json_items =
-        #     if cart.json_items != nil do
-        #       items = cart.json_items |> Jason.decode!()
-        #       IO.inspect(items)
-        #       need_add = Enum.any?(items, fn x -> x["id"] == itemz.id end)
-
-        #       lists =
-        #         for item <- items do
-        #           if itemz.id == item["id"] do
-        #             FbTool.string_to_atom(item, Map.keys(item)) |> Map.put(:qty, item["qty"] - 1)
-        #           else
-        #             FbTool.string_to_atom(item, Map.keys(item))
-        #           end
-        #         end
-        #         |> Enum.reject(fn x -> x.qty < 1 end)
-
-        #       if need_add do
-        #         lists
-        #       else
-        #         lists ++ [itemz]
-        #       end
-        #     else
-        #       [itemz]
-        #     end
-
-        #   sub_total =
-        #     data_list
-        #     |> Enum.map(fn x -> elem(x, 1) end)
-        #     |> Enum.sum()
-
-        #   weight =
-        #     data_list
-        #     |> Enum.map(fn x -> elem(x, 0) end)
-        #     |> Enum.sum()
-
-        #   company_tax = 1.00
-
-        #   {:ok, cart} =
-        #     Settings.update_cart(cart, %{
-        #       "sub_total" => sub_total,
-        #       "json_items" => Jason.encode!(json_items)
-        #     })
-
-        #   IO.inspect(json_items)
-
-        #   final_list =
-        #     for item <- json_items do
-        #       %{"text" => "#{item.name}\r\nTotal: #{item.qty}"}
-        #     end
-
-        #   button =
-        #     if visitor.line1 == nil do
-        #       %{"type" => "postback", "title" => "Yes", "payload" => "form_line1"}
-        #     else
-        #       %{"type" => "postback", "title" => "Yes", "payload" => "checkout_now"}
-        #     end
-
-        #   [%{"text" => gettext("Your current cart has:")}] ++
-        #     final_list ++
-        #     [
-        #       %{
-        #         "attachment" => %{
-        #           "type" => "template",
-        #           "payload" => %{
-        #             "template_type" => "button",
-        #             "text" => "Would you like to check out ?",
-        #             "buttons" => [
-        #               button,
-        #               %{"type" => "postback", "title" => "Later", "payload" => "buy_product"}
-        #             ]
-        #           }
-        #         }
-        #       }
-        #     ]
-
-        code == "form" ->
-          text =
-            case value do
-              "line1" ->
-                FbTool.Settings.update_visitor_company(vc, %{msg_state: "form_line1"})
-
-                %{
-                  "text" =>
-                    gettext(
-                      "We need your delivery address, after type in the line1 address, press enter:"
-                    )
-                }
-            end
-
-          [text]
-
         true ->
-          FbTool.Settings.update_visitor(vc, %{msg_state: "idle"})
           [%{"text" => gettext("Oops, try selecting another option!")}]
       end
 
-    callSendAPI(sender_psid, responses)
+    callSendAPI(page.page_access_token, page_visitor, responses)
   end
 
   def receipt_template(cart, visitor) do
     json_items =
-      for item <- cart.json_items |> Jason.decode!() do
-        item = FbTool.string_to_atom(item, Map.keys(item))
-
-        price =
-          if item.promo_price != nil do
-            item.promo_price
-          else
-            item.selling_price
-          end
-
+      for item <- cart.customer_order_lines do
         %{
-          "title" => item.name,
-          "subtitle" => item.category,
+          "title" => item.item_name,
+          "subtitle" => item.remarks,
           "quantity" => item.qty,
-          "price" => price |> String.replace("RM ", "") |> Float.parse() |> elem(0),
-          "currency" => "MYR",
-          "image_url" => "https://organiclovenewlife.com/#{item.img_url}"
+          "price" => item.cost_price,
+          "currency" => "MYR"
         }
       end
 
+    sb =
+      for item <- cart.customer_order_lines do
+        item.qty * item.cost_price
+      end
+      |> Enum.sum()
+      |> Float.round(2)
+
     dt = DateTime.utc_now() |> DateTime.to_unix()
 
-    {:ok, cart} =
-      Settings.update_cart(cart, %{
-        line1: visitor.line1,
-        town: visitor.town,
-        postcode: visitor.postcode,
-        state: visitor.state
-      })
+    [address, city, postcode, state] =
+      if cart.delivery_address == nil do
+        ["line1", "city", "postcode", "state"]
+      else
+        cart.delivery_address |> String.split("\r\n")
+      end
+
+    # {:ok, cart} =
+    #   Settings.update_cart(cart, %{
+    #     line1: visitor.line1,
+    #     town: visitor.town,
+    #     postcode: visitor.postcode,
+    #     state: visitor.state
+    #   })
 
     %{
       "attachment" => %{
@@ -1170,21 +885,21 @@ defmodule FacebookHelper do
           "recipient_name" => visitor.name,
           "order_number" => cart.id,
           "currency" => "MYR",
-          "payment_method" => "bank_transfer",
+          "payment_method" => "Online Transfer(FPX), Bank In Slip, Cash On Delivery",
           "order_url" => "",
           "timestamp" => "#{dt}",
           "address" => %{
-            "street_1" => cart.line1,
-            "city" => cart.town,
-            "postal_code" => cart.postcode,
-            "state" => cart.state,
+            "street_1" => address,
+            "city" => city,
+            "postal_code" => postcode,
+            "state" => state,
             "country" => "Malaysia"
           },
           "summary" => %{
-            "subtotal" => cart.sub_total,
+            "subtotal" => sb,
             "shipping_cost" => 0.0,
             "total_tax" => 0.0,
-            "total_cost" => cart.sub_total
+            "total_cost" => sb
           },
           "elements" => json_items
         }
@@ -1192,16 +907,13 @@ defmodule FacebookHelper do
     }
   end
 
-  def callSendAPI(sender_psid, responses) do
-    vc = Repo.get_by(VisitorCompany, psid: sender_psid)
-
+  def callSendAPI(page_access_token, page_visitor, responses) do
     for response <- responses |> Enum.reject(fn x -> x == nil end) do
-      request_body = %{"recipient" => %{"id" => sender_psid}, "message" => response}
-      page_access_token = Repo.get_by(Settings.Parameter, name: "page_access_token").cvalue
+      request_body = %{"recipient" => %{"id" => page_visitor.psid}, "message" => response}
       {:ok, body_request} = Jason.encode(request_body)
       IO.puts(body_request)
       query = "access_token=#{page_access_token}"
-      uri = "https://graph.facebook.com/v7.0/me/messages?#{query}"
+      uri = "https://graph.facebook.com/v12.0/me/messages?#{query}"
       HTTPoison.start()
       IO.puts("start to send to facebook...")
 

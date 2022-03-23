@@ -791,4 +791,158 @@ defmodule United.SettingsTest do
       assert %Ecto.Changeset{} = Settings.change_page_visitor(page_visitor)
     end
   end
+
+  describe "customer_orders" do
+    alias United.Settings.CustomerOrder
+
+    @valid_attrs %{date: ~D[2010-04-17], delivery_address: "some delivery_address", delivery_fee: 120.5, delivery_phone: "some delivery_phone", facebook_page_id: 42, grand_total: 120.5, page_visitor_id: 42, payment_gateway_link: "some payment_gateway_link", receipt_upload_link: "some receipt_upload_link", remarks: "some remarks", status: "some status", sub_total: 120.5, user_id: 42}
+    @update_attrs %{date: ~D[2011-05-18], delivery_address: "some updated delivery_address", delivery_fee: 456.7, delivery_phone: "some updated delivery_phone", facebook_page_id: 43, grand_total: 456.7, page_visitor_id: 43, payment_gateway_link: "some updated payment_gateway_link", receipt_upload_link: "some updated receipt_upload_link", remarks: "some updated remarks", status: "some updated status", sub_total: 456.7, user_id: 43}
+    @invalid_attrs %{date: nil, delivery_address: nil, delivery_fee: nil, delivery_phone: nil, facebook_page_id: nil, grand_total: nil, page_visitor_id: nil, payment_gateway_link: nil, receipt_upload_link: nil, remarks: nil, status: nil, sub_total: nil, user_id: nil}
+
+    def customer_order_fixture(attrs \\ %{}) do
+      {:ok, customer_order} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_customer_order()
+
+      customer_order
+    end
+
+    test "list_customer_orders/0 returns all customer_orders" do
+      customer_order = customer_order_fixture()
+      assert Settings.list_customer_orders() == [customer_order]
+    end
+
+    test "get_customer_order!/1 returns the customer_order with given id" do
+      customer_order = customer_order_fixture()
+      assert Settings.get_customer_order!(customer_order.id) == customer_order
+    end
+
+    test "create_customer_order/1 with valid data creates a customer_order" do
+      assert {:ok, %CustomerOrder{} = customer_order} = Settings.create_customer_order(@valid_attrs)
+      assert customer_order.date == ~D[2010-04-17]
+      assert customer_order.delivery_address == "some delivery_address"
+      assert customer_order.delivery_fee == 120.5
+      assert customer_order.delivery_phone == "some delivery_phone"
+      assert customer_order.facebook_page_id == 42
+      assert customer_order.grand_total == 120.5
+      assert customer_order.page_visitor_id == 42
+      assert customer_order.payment_gateway_link == "some payment_gateway_link"
+      assert customer_order.receipt_upload_link == "some receipt_upload_link"
+      assert customer_order.remarks == "some remarks"
+      assert customer_order.status == "some status"
+      assert customer_order.sub_total == 120.5
+      assert customer_order.user_id == 42
+    end
+
+    test "create_customer_order/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_customer_order(@invalid_attrs)
+    end
+
+    test "update_customer_order/2 with valid data updates the customer_order" do
+      customer_order = customer_order_fixture()
+      assert {:ok, %CustomerOrder{} = customer_order} = Settings.update_customer_order(customer_order, @update_attrs)
+      assert customer_order.date == ~D[2011-05-18]
+      assert customer_order.delivery_address == "some updated delivery_address"
+      assert customer_order.delivery_fee == 456.7
+      assert customer_order.delivery_phone == "some updated delivery_phone"
+      assert customer_order.facebook_page_id == 43
+      assert customer_order.grand_total == 456.7
+      assert customer_order.page_visitor_id == 43
+      assert customer_order.payment_gateway_link == "some updated payment_gateway_link"
+      assert customer_order.receipt_upload_link == "some updated receipt_upload_link"
+      assert customer_order.remarks == "some updated remarks"
+      assert customer_order.status == "some updated status"
+      assert customer_order.sub_total == 456.7
+      assert customer_order.user_id == 43
+    end
+
+    test "update_customer_order/2 with invalid data returns error changeset" do
+      customer_order = customer_order_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_customer_order(customer_order, @invalid_attrs)
+      assert customer_order == Settings.get_customer_order!(customer_order.id)
+    end
+
+    test "delete_customer_order/1 deletes the customer_order" do
+      customer_order = customer_order_fixture()
+      assert {:ok, %CustomerOrder{}} = Settings.delete_customer_order(customer_order)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_customer_order!(customer_order.id) end
+    end
+
+    test "change_customer_order/1 returns a customer_order changeset" do
+      customer_order = customer_order_fixture()
+      assert %Ecto.Changeset{} = Settings.change_customer_order(customer_order)
+    end
+  end
+
+  describe "customer_order_lines" do
+    alias United.Settings.CustomerOrderLine
+
+    @valid_attrs %{cost_price: 120.5, customer_order_id: 42, item_name: "some item_name", live_comment_id: 42, qty: 42, remarks: "some remarks", sub_total: 120.5}
+    @update_attrs %{cost_price: 456.7, customer_order_id: 43, item_name: "some updated item_name", live_comment_id: 43, qty: 43, remarks: "some updated remarks", sub_total: 456.7}
+    @invalid_attrs %{cost_price: nil, customer_order_id: nil, item_name: nil, live_comment_id: nil, qty: nil, remarks: nil, sub_total: nil}
+
+    def customer_order_line_fixture(attrs \\ %{}) do
+      {:ok, customer_order_line} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_customer_order_line()
+
+      customer_order_line
+    end
+
+    test "list_customer_order_lines/0 returns all customer_order_lines" do
+      customer_order_line = customer_order_line_fixture()
+      assert Settings.list_customer_order_lines() == [customer_order_line]
+    end
+
+    test "get_customer_order_line!/1 returns the customer_order_line with given id" do
+      customer_order_line = customer_order_line_fixture()
+      assert Settings.get_customer_order_line!(customer_order_line.id) == customer_order_line
+    end
+
+    test "create_customer_order_line/1 with valid data creates a customer_order_line" do
+      assert {:ok, %CustomerOrderLine{} = customer_order_line} = Settings.create_customer_order_line(@valid_attrs)
+      assert customer_order_line.cost_price == 120.5
+      assert customer_order_line.customer_order_id == 42
+      assert customer_order_line.item_name == "some item_name"
+      assert customer_order_line.live_comment_id == 42
+      assert customer_order_line.qty == 42
+      assert customer_order_line.remarks == "some remarks"
+      assert customer_order_line.sub_total == 120.5
+    end
+
+    test "create_customer_order_line/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_customer_order_line(@invalid_attrs)
+    end
+
+    test "update_customer_order_line/2 with valid data updates the customer_order_line" do
+      customer_order_line = customer_order_line_fixture()
+      assert {:ok, %CustomerOrderLine{} = customer_order_line} = Settings.update_customer_order_line(customer_order_line, @update_attrs)
+      assert customer_order_line.cost_price == 456.7
+      assert customer_order_line.customer_order_id == 43
+      assert customer_order_line.item_name == "some updated item_name"
+      assert customer_order_line.live_comment_id == 43
+      assert customer_order_line.qty == 43
+      assert customer_order_line.remarks == "some updated remarks"
+      assert customer_order_line.sub_total == 456.7
+    end
+
+    test "update_customer_order_line/2 with invalid data returns error changeset" do
+      customer_order_line = customer_order_line_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_customer_order_line(customer_order_line, @invalid_attrs)
+      assert customer_order_line == Settings.get_customer_order_line!(customer_order_line.id)
+    end
+
+    test "delete_customer_order_line/1 deletes the customer_order_line" do
+      customer_order_line = customer_order_line_fixture()
+      assert {:ok, %CustomerOrderLine{}} = Settings.delete_customer_order_line(customer_order_line)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_customer_order_line!(customer_order_line.id) end
+    end
+
+    test "change_customer_order_line/1 returns a customer_order_line changeset" do
+      customer_order_line = customer_order_line_fixture()
+      assert %Ecto.Changeset{} = Settings.change_customer_order_line(customer_order_line)
+    end
+  end
 end

@@ -1,0 +1,38 @@
+<h1>Listing Customer order lines</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Customer order</th>
+      <th>Item name</th>
+      <th>Qty</th>
+      <th>Cost price</th>
+      <th>Sub total</th>
+      <th>Live comment</th>
+      <th>Remarks</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for customer_order_line <- @customer_order_lines do %>
+    <tr>
+      <td><%= customer_order_line.customer_order_id %></td>
+      <td><%= customer_order_line.item_name %></td>
+      <td><%= customer_order_line.qty %></td>
+      <td><%= customer_order_line.cost_price %></td>
+      <td><%= customer_order_line.sub_total %></td>
+      <td><%= customer_order_line.live_comment_id %></td>
+      <td><%= customer_order_line.remarks %></td>
+
+      <td>
+        <span><%= link "Show", to: Routes.customer_order_line_path(@conn, :show, customer_order_line) %></span>
+        <span><%= link "Edit", to: Routes.customer_order_line_path(@conn, :edit, customer_order_line) %></span>
+        <span><%= link "Delete", to: Routes.customer_order_line_path(@conn, :delete, customer_order_line), method: :delete, data: [confirm: "Are you sure?"] %></span>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+
+<span><%= link "New Customer order line", to: Routes.customer_order_line_path(@conn, :new) %></span>

@@ -5,6 +5,7 @@ defmodule UnitedWeb.ApiController do
   @app_id "716495772618929"
   @page_access_token "EAAKLpiwCkLEBAJ4IXng9ZAWLL4KkwkNhySnKlqxt04slrJqnqdJtDI4hfqFtIpoqaAyP4NcpzVXBFxFr7GiZAbQ6WvM4SEZCAyIaNb5wJjOKF7cvMKjhILrNNwPv3HSoZCo5cgcAMvC1LH5b16ZAIHaBN5CK8kswr4mdcn2VZCYMEV35rhOBbE"
   import FacebookHelper
+  require Logger
 
   def fb_webhook(conn, params) do
     # parameter = Repo.get_by(Settings.Parameter, name: "page_access_token")
@@ -29,6 +30,8 @@ defmodule UnitedWeb.ApiController do
     end
   end
 
+  require IEx
+
   def fb_webhook_post(conn, params) do
     IO.inspect(params)
 
@@ -51,51 +54,65 @@ defmodule UnitedWeb.ApiController do
     case params["object"] do
       "page" ->
         entry_list = params["entry"]
-        IO.puts(Jason.encode!(entry_list))
 
         for %{"changes" => changes} = item <- entry_list do
           cond do
             changes |> Enum.map(&(&1["field"] == "live_videos")) ->
               IO.inspect(List.first(changes)["value"])
+          end
+        end
 
-            Enum.any?(Map.keys(item), fn x -> x == "standby" end) ->
-              map = item["standby"]
+        for item <- entry_list do
+          %{
+            "time" => time,
+            "messaging" => messages,
+            "id" => fb_page_id
+          } = item
 
-              webhook_event = hd(map)
-              IO.puts(Jason.encode!(webhook_event))
-              sender_psid = webhook_event["sender"]["id"]
+          page = United.Repo.get_by(United.Settings.FacebookPage, page_id: fb_page_id)
 
-              IO.puts("Sender PSID: " <> sender_psid)
+          set_ps = fn sender_psid ->
+            page_visitor =
+              United.Repo.get_by(United.Settings.PageVisitor,
+                facebook_page_id: page.id,
+                psid: sender_psid
+              )
 
-            # create_identities(webhook_event, sender_psid)
+            page_visitor =
+              if page_visitor == nil do
+                existing_page_commenter =
+                  United.Repo.get_by(United.Settings.PageVisitor,
+                    psid: sender_psid
+                  )
 
-            Enum.any?(Map.keys(item), fn x -> x == "messaging" end) ->
-              maps = item["messaging"]
+                {:ok, p} =
+                  if existing_page_commenter == nil do
+                    United.Settings.create_page_visitor(%{
+                      facebook_page_id: page.id,
+                      psid: sender_psid
+                    })
+                  else
+                    United.Settings.update_page_visitor(existing_page_commenter, %{
+                      facebook_page_id: page.id
+                    })
+                  end
 
-              for webhook_event <- maps do
-                IO.puts(Jason.encode!(webhook_event))
-                sender_psid = webhook_event["sender"]["id"]
-
-                IO.puts("Sender PSID: " <> sender_psid)
-                # create_identities(webhook_event, sender_psid)
-
-                cond do
-                  webhook_event["message"] != nil ->
-                    handleMessage(sender_psid, webhook_event["message"])
-
-                  webhook_event["postback"] != nil ->
-                    handlePostback(sender_psid, webhook_event["postback"])
-
-                  webhook_event["delivery"] != nil ->
-                    true
-
-                  webhook_event["read"] != nil ->
-                    true
-
-                  true ->
-                    IO.inspect(params)
-                end
+                p
+              else
+                page_visitor
               end
+          end
+
+          for %{"message" => content, "sender" => %{"id" => psid}} = message <- messages do
+            Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
+
+            handleMessage(page, set_ps.(psid), content)
+          end
+
+          for %{"postback" => postback, "sender" => %{"id" => psid}} = message <- messages do
+            Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
+
+            handlePostback(page, set_ps.(psid), postback)
           end
         end
 
@@ -122,12 +139,87 @@ defmodule UnitedWeb.ApiController do
     end
   end
 
+  def webhook_post(conn, params) do
+    final =
+      case params["scope"] do
+        "co_failed" ->
+          United.Settings.update_customer_order_by_external_id(params["external_id"], :failed)
+
+        "co_paid" ->
+          United.Settings.update_customer_order_by_external_id(params["external_id"], :paid)
+
+        "finalize_order" ->
+          %{"live_id" => live_id, "order" => order} = params
+          IO.inspect(order)
+          United.Settings.finalize_order(params)
+          %{status: "received"}
+
+        _ ->
+          %{status: "received"}
+      end
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, Jason.encode!(final))
+  end
+
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "update_co_address" ->
+          United.Settings.update_co_address(params)
+          %{status: "received"}
+
+        "create_co" ->
+          nparams =
+            %{
+              "account_document_line" => %{
+                "VBi6kc" => %{
+                  "item_id" => "5",
+                  "item_name" => "AYAM STANDARD",
+                  "line_total" => "104.40",
+                  "qty" => "12",
+                  "qty2" => "12",
+                  "remarks" => "Fresh farm chicken 60 days",
+                  "sub_total" => "104.40",
+                  "tax" => "0.00",
+                  "tax_code" => "1",
+                  "unit_cost" => "8.7"
+                }
+              },
+              "account_documents" => %{
+                "account_id" => "880",
+                "created_by" => "4",
+                "date" => "2022-03-21",
+                "document_type" => "customer_order",
+                "id" => "0",
+                "organization_id" => "2",
+                "ref_no" => "<<new>>"
+              },
+              "model" => "account_documents"
+            }
+            |> Map.merge(params)
+
+          {:ok, res} = Accounting.post(Jason.encode!(nparams), params["accounting_accesss_token"])
+
+          resp = res.body |> Poison.decode!()
+
+        "get_accounting_products" ->
+          body = "products"
+          {:ok, res} = Accounting.get(body, params["accounting_accesss_token"])
+
+          resp = res.body |> Poison.decode!()
+
+          IO.inspect(resp)
+          United.Settings.save_sync_items(params["accounting_accesss_token"], resp)
+          resp
+
         "repopulate_comments" ->
           lv = United.Settings.get_live_video!(params["live_video_id"])
           FacebookHelper.get_live_video(lv.live_id, lv.facebook_page.page_access_token, lv)
+
+        "process_into_order" ->
+          FacebookHelper.page_video_to_orders(params["live_id"])
 
         "get_videos" ->
           FacebookHelper.page_videos(params["pat"])

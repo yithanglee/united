@@ -39,3 +39,8 @@ config :united, UnitedWeb.Endpoint, server: true
 #
 # Then you can assemble a release by calling `mix release`.
 # See `mix help release` for more information.
+
+config :united, :facebook,
+  accounting_url: System.get_env("ACCOUNTING_URL_PROD"),
+  base_url: System.get_env("FB_CALLBACK_PROD") |> String.split("/fb_callback") |> List.first(),
+  callback_url: System.get_env("FB_CALLBACK_PROD")

@@ -5,6 +5,24 @@ defmodule UnitedWeb.PageController do
   @fb_callback Application.get_env(:united, :facebook)[:callback_url]
   require IEx
 
+  def fb_relogin(conn, _params) do
+    # redir = "https://ff57-115-164-74-68.ngrok.io/fb_callback"
+    redir = @fb_callback
+    user_id = conn.private.plug_session["current_user"].id
+
+    IO.inspect(redir)
+
+    link =
+      "https://www.facebook.com/v13.0/dialog/oauth?client_id=#{@app_id}&auth_type=rerequest&scope=pages_show_list,pages_read_engagement,pages_read_user_content&redirect_uri=#{
+        redir
+      }&state={user_id=#{user_id}}"
+
+    IO.inspect(link)
+
+    conn
+    |> redirect(external: link)
+  end
+
   def fb_login(conn, _params) do
     # redir = "https://ff57-115-164-74-68.ngrok.io/fb_callback"
     redir = @fb_callback
@@ -77,6 +95,10 @@ defmodule UnitedWeb.PageController do
 
   def index(conn, _params) do
     render(conn, "index.html")
+  end
+
+  def show_page(conn, params) do
+    render(conn, "show.html", params)
   end
 
   def dashboard(conn, _params) do
