@@ -290,8 +290,10 @@ function check_video_comment(live_id, fb_live_id) {
       data: "id",
       label: "id"
     }, {
-      data: "page_visitor.name",
-      label: "name"
+      data: "page_visitor_id",
+      label: "name",
+       "showChild": true,
+        "xdata": { child: "page_visitor", data: "name" }
     }, {
       data: "message",
       label: "Message"

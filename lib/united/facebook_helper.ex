@@ -736,11 +736,6 @@ defmodule FacebookHelper do
                       ),
                     "buttons" => [
                       %{
-                        "type" => "web_url",
-                        "url" => "#{base_url}/show_page?customer_order_id=#{co.id}",
-                        "title" => "Update Details"
-                      },
-                      %{
                         "type" => "postback",
                         "title" => "Check Status",
                         "payload" => "check_status"
