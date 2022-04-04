@@ -7,6 +7,7 @@ defmodule United.Settings do
   alias United.Repo
 
   alias United.Settings.User
+  alias Ecto.Multi
 
   @doc """
   Returns the list of users.
@@ -1727,5 +1728,319 @@ defmodule United.Settings do
     IO.inspect(customer_delivery_order)
     IO.inspect(res3.body |> Jason.decode!())
     IO.inspect(res.body |> Jason.decode!())
+  end
+
+  def cg_put_assoc(asc, changeset, params) do
+    if params["update_assoc"][asc] == "true" do
+      changeset
+      |> Ecto.Changeset.cast_assoc(String.to_atom(asc))
+    else
+      changeset
+    end
+  end
+
+  alias United.Settings.Book
+
+  def list_books() do
+    Repo.all(Book)
+  end
+
+  def get_book!(id) do
+    Repo.get!(Book, id)
+  end
+
+  def create_book(params \\ %{}) do
+    Book.changeset(%Book{}, params)
+    |> Ecto.Changeset.cast_assoc(:author)
+    |> Ecto.Changeset.cast_assoc(:publisher)
+    |> Repo.insert()
+  end
+
+  def update_book(book, params) do
+    book = book |> Repo.preload([:publisher, :author])
+    Book.update_changeset(book, params) |> Repo.update()
+  end
+
+  def delete_book(%Book{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.Author
+
+  def list_authors() do
+    Repo.all(Author)
+  end
+
+  def get_author!(id) do
+    Repo.get!(Author, id)
+  end
+
+  def create_author(params \\ %{}) do
+    Author.changeset(%Author{}, params) |> Repo.insert()
+  end
+
+  def update_author(book, params) do
+    Author.changeset(book, params) |> Repo.update()
+  end
+
+  def delete_author(%Author{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.Publisher
+
+  def list_publishers() do
+    Repo.all(Publisher)
+  end
+
+  def get_publisher!(id) do
+    Repo.get!(Publisher, id)
+  end
+
+  def create_publisher(params \\ %{}) do
+    Publisher.changeset(%Publisher{}, params) |> Repo.insert()
+  end
+
+  def update_publisher(model, params) do
+    Publisher.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_publisher(%Publisher{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.BookCategory
+
+  def list_book_categories() do
+    Repo.all(BookCategory)
+  end
+
+  def get_book_category!(id) do
+    Repo.get!(BookCategory, id)
+  end
+
+  def create_book_category(params \\ %{}) do
+    BookCategory.changeset(%BookCategory{}, params)
+    |> Repo.insert()
+  end
+
+  def update_book_category(model, params) do
+    BookCategory.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_book_category(%BookCategory{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.Loan
+
+  def list_loans() do
+    Repo.all(Loan)
+  end
+
+  def get_loan!(id) do
+    Repo.get!(Loan, id)
+  end
+
+  def create_loan(params \\ %{}) do
+    Loan.changeset(%Loan{}, params) |> Repo.insert()
+  end
+
+  def update_loan(model, params) do
+    Loan.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_loan(%Loan{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.Member
+
+  def list_members() do
+    Repo.all(Member)
+  end
+
+  def get_member!(id) do
+    Repo.get!(Member, id)
+  end
+
+  def create_member(params \\ %{}) do
+    Member.changeset(%Member{}, params) |> Repo.insert()
+  end
+
+  def update_member(model, params) do
+    Member.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_member(%Member{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.Group
+
+  def list_groups() do
+    Repo.all(Group)
+  end
+
+  def get_group!(id) do
+    Repo.get!(Group, id)
+  end
+
+  def create_group(params \\ %{}) do
+    Group.changeset(%Group{}, params) |> Repo.insert()
+  end
+
+  def update_group(model, params) do
+    Group.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_group(%Group{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.BookInventory
+
+  def list_book_inventories() do
+    Repo.all(BookInventory)
+  end
+
+  def search_member(params, strict \\ false) do
+    q =
+      from(m in Member,
+        left_join: g in Group,
+        on: g.id == m.group_id,
+        where: ilike(m.code, ^"%#{params["member_code"]}%"),
+        preload: [:group]
+      )
+
+    q =
+      if strict do
+        q
+      else
+        q
+        |> or_where([m, g], ilike(m.name, ^"%#{params["member_code"]}%"))
+        |> or_where([m, g], ilike(m.ic, ^"%#{params["member_code"]}%"))
+        |> or_where([m, g], ilike(m.phone, ^"%#{params["member_code"]}%"))
+      end
+
+    Repo.all(q)
+  end
+
+  def search_book_inventory(params, strict \\ false) do
+    q =
+      from(bi in BookInventory,
+        left_join: b in Book,
+        on: b.id == bi.book_id,
+        left_join: a in Author,
+        on: a.id == b.author_id,
+        left_join: p in Publisher,
+        on: p.id == b.publisher_id,
+        left_join: c in BookCategory,
+        on: c.id == bi.book_category_id,
+        where: ilike(bi.code, ^"%#{params["barcode"]}%"),
+        preload: [:book, :author, :publisher, :book_category]
+      )
+      |> or_where([bi, b, a, p, c], ilike(b.isbn, ^"%#{params["barcode"]}%"))
+
+    q =
+      if strict do
+        q
+      else
+        q
+        |> or_where([bi, b, a, p, c], ilike(b.call_number, ^"%#{params["barcode"]}%"))
+      end
+
+    Repo.all(q)
+  end
+
+  def get_book_inventory!(id) do
+    Repo.get!(BookInventory, id)
+  end
+
+  def create_book_inventory(params \\ %{}) do
+    if "update_assoc" in Map.keys(params) do
+      assocs = Map.keys(params["update_assoc"])
+      cols = BluePotion.test_module("BookInventory") |> Map.keys()
+
+      p = BluePotion.string_to_atom(params, Map.keys(params)) |> Map.delete(:id)
+
+      data = Ecto.Changeset.cast(%BookInventory{}, p, cols)
+
+      {:ok, res} =
+        Multi.new()
+        |> Multi.run(:book_inventory, fn _repo, %{} ->
+          Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
+          |> Repo.insert()
+        end)
+        |> Multi.run(:publisher, fn _repo, %{book_inventory: book_inventory} ->
+          publisher = Repo.get_by(Publisher, name: params["publisher"]["name"])
+
+          publisher =
+            if publisher == nil do
+              {:ok, publisher} = create_publisher(%{name: params["publisher"]["name"]})
+              publisher
+            else
+              publisher
+            end
+
+          Book.update_changeset(book_inventory.book, %{publisher_id: publisher.id})
+          |> Repo.update()
+        end)
+        |> Repo.transaction()
+
+      {:ok, res.book_inventory}
+    else
+      BookInventory.changeset(%BookInventory{}, params)
+      |> Ecto.Changeset.cast_assoc(:book)
+      |> Ecto.Changeset.cast_assoc(:book_category)
+      |> Repo.insert()
+    end
+  end
+
+  def update_book_inventory(model, params) do
+    model = model |> Repo.preload([:book, :book_category, :author])
+
+    if "update_assoc" in Map.keys(params) do
+      assocs = Map.keys(params["update_assoc"])
+      cols = BluePotion.test_module("BookInventory") |> Map.keys()
+
+      p = BluePotion.string_to_atom(params, Map.keys(params))
+
+      data = Ecto.Changeset.cast(model, p, cols)
+
+      Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
+      |> Repo.update()
+    else
+      BookInventory.update_changeset(model, params) |> Repo.update()
+    end
+  end
+
+  def delete_book_inventory(%BookInventory{} = model) do
+    Repo.delete(model)
+  end
+
+  def book_can_loan(book_inventory_id) do
+    Repo.all(
+      from l in Loan,
+        where:
+          l.book_inventory_id == ^book_inventory_id and
+            l.has_return == ^false
+    )
+  end
+
+  def member_outstanding_loans(member_id) do
+    Repo.all(
+      from l in Loan,
+        where:
+          l.member_id == ^member_id and
+            l.has_return == ^false,
+        preload: [:book]
+    )
+  end
+
+  def return_book(loan_id) do
+    l = get_loan!(loan_id)
+
+    update_loan(l, %{has_return: true})
   end
 end

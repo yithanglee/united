@@ -62,7 +62,7 @@ defmodule UnitedWeb.ApiController do
           end
         end
 
-        for item <- entry_list do
+        for %{"messaging" => messaging2} = item <- entry_list do
           %{
             "time" => time,
             "messaging" => messages,
@@ -71,48 +71,50 @@ defmodule UnitedWeb.ApiController do
 
           page = United.Repo.get_by(United.Settings.FacebookPage, page_id: fb_page_id)
 
-          set_ps = fn sender_psid ->
-            page_visitor =
-              United.Repo.get_by(United.Settings.PageVisitor,
-                facebook_page_id: page.id,
-                psid: sender_psid
-              )
+          if page != nil do
+            set_ps = fn sender_psid ->
+              page_visitor =
+                United.Repo.get_by(United.Settings.PageVisitor,
+                  facebook_page_id: page.id,
+                  psid: sender_psid
+                )
 
-            page_visitor =
-              if page_visitor == nil do
-                existing_page_commenter =
-                  United.Repo.get_by(United.Settings.PageVisitor,
-                    psid: sender_psid
-                  )
-
-                {:ok, p} =
-                  if existing_page_commenter == nil do
-                    United.Settings.create_page_visitor(%{
-                      facebook_page_id: page.id,
+              page_visitor =
+                if page_visitor == nil do
+                  existing_page_commenter =
+                    United.Repo.get_by(United.Settings.PageVisitor,
                       psid: sender_psid
-                    })
-                  else
-                    United.Settings.update_page_visitor(existing_page_commenter, %{
-                      facebook_page_id: page.id
-                    })
-                  end
+                    )
 
-                p
-              else
-                page_visitor
-              end
-          end
+                  {:ok, p} =
+                    if existing_page_commenter == nil do
+                      United.Settings.create_page_visitor(%{
+                        facebook_page_id: page.id,
+                        psid: sender_psid
+                      })
+                    else
+                      United.Settings.update_page_visitor(existing_page_commenter, %{
+                        facebook_page_id: page.id
+                      })
+                    end
 
-          for %{"message" => content, "sender" => %{"id" => psid}} = message <- messages do
-            Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
+                  p
+                else
+                  page_visitor
+                end
+            end
 
-            handleMessage(page, set_ps.(psid), content)
-          end
+            for %{"message" => content, "sender" => %{"id" => psid}} = message <- messages do
+              Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
 
-          for %{"postback" => postback, "sender" => %{"id" => psid}} = message <- messages do
-            Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
+              handleMessage(page, set_ps.(psid), content)
+            end
 
-            handlePostback(page, set_ps.(psid), postback)
+            for %{"postback" => postback, "sender" => %{"id" => psid}} = message <- messages do
+              Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
+
+              handlePostback(page, set_ps.(psid), postback)
+            end
           end
         end
 
@@ -142,6 +144,50 @@ defmodule UnitedWeb.ApiController do
   def webhook_post(conn, params) do
     final =
       case params["scope"] do
+        "process_loan" ->
+          %{
+            "barcode" => barcode,
+            "btnradio" => _prcess,
+            "loan_date" => loan_date,
+            "member_code" => member_code,
+            "return_date" => return_date,
+            "scope" => _scope
+          } = params
+
+          bi =
+            United.Settings.search_book_inventory(%{"barcode" => barcode}, true) |> List.first()
+
+          m = United.Settings.search_member(%{"member_code" => member_code}, true) |> List.first()
+
+          if United.Settings.book_can_loan(bi.id) |> Enum.count() > 0 do
+            %{status: "error"}
+          else
+            if bi != nil && m != nil do
+              case United.Settings.create_loan(%{
+                     loan_date: loan_date,
+                     return_date: return_date,
+                     book_inventory_id: bi.id,
+                     member_id: m.id
+                   }) do
+                {:ok, _p} ->
+                  %{status: "ok"}
+
+                _ ->
+                  %{status: "error"}
+              end
+            else
+              %{status: "empty"}
+            end
+          end
+
+        "search_book" ->
+          United.Settings.search_book_inventory(params, true)
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
+        "search_member" ->
+          United.Settings.search_member(params, true)
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
         "co_failed" ->
           United.Settings.update_customer_order_by_external_id(params["external_id"], :failed)
 
@@ -166,6 +212,18 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "return_book" ->
+          United.Settings.return_book(params["loan_id"])
+          %{status: "received"}
+
+        "book_can_loan" ->
+          United.Settings.book_can_loan(params["book_inventory_id"])
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
+        "member_outstanding_loans" ->
+          United.Settings.member_outstanding_loans(params["member_id"])
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
         "update_co_address" ->
           United.Settings.update_co_address(params)
           %{status: "received"}
@@ -339,8 +397,28 @@ defmodule UnitedWeb.ApiController do
       if preloads == nil do
         preloads = []
       else
-        [preloads] |> Enum.map(&(&1 |> String.to_atom()))
+        convert_to_atom = fn data ->
+          if is_map(data) do
+            items = data |> Map.to_list()
+
+            for {x, y} <- items do
+              {String.to_atom(x), String.to_atom(y)}
+            end
+          else
+            String.to_atom(data)
+          end
+        end
+
+        preloads
+        |> Jason.decode!()
+        |> IO.inspect()
+        |> Enum.map(&(&1 |> convert_to_atom.()))
+
+        # |> Enum.map(&(&1 |> String.to_atom()))
       end
+      |> List.flatten()
+
+    IO.inspect(preloads)
 
     json =
       BluePotion.post_process_datatable(
@@ -352,5 +430,66 @@ defmodule UnitedWeb.ApiController do
     conn
     |> put_resp_content_type("application/json")
     |> send_resp(200, Jason.encode!(json))
+  end
+
+  def delete_data(conn, params) do
+    model = Map.get(params, "model")
+    params = Map.delete(params, "model")
+
+    upcase? = fn x -> x == String.upcase(x) end
+
+    sanitized_model =
+      model
+      |> String.split("")
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.map(
+        &if upcase?.(&1), do: String.replace(&1, &1, "_#{String.downcase(&1)}"), else: &1
+      )
+      |> Enum.join("")
+      |> String.split("")
+      |> Enum.reject(&(&1 == ""))
+      |> List.pop_at(0)
+      |> elem(1)
+      |> Enum.join()
+
+    IO.inspect(params)
+    json = %{}
+
+    config = Application.get_env(:blue_potion, :contexts)
+
+    mods =
+      if config == nil do
+        ["Settings", "Secretary"]
+      else
+        config
+      end
+
+    struct =
+      for mod <- mods do
+        Module.concat([Application.get_env(:blue_potion, :otp_app), mod, model])
+      end
+      |> Enum.filter(&({:error, :nofile} != Code.ensure_compiled(&1)))
+      |> List.first()
+
+    IO.inspect(struct)
+
+    mod =
+      struct
+      |> Module.split()
+      |> Enum.take(2)
+      |> Module.concat()
+
+    IO.inspect(mod)
+
+    dynamic_code = """
+    struct = #{mod}.get_#{sanitized_model}!(params["id"])
+    #{mod}.delete_#{sanitized_model}(struct)
+    """
+
+    {result, _values} = Code.eval_string(dynamic_code, params: params)
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, Jason.encode!(%{status: "already deleted"}))
   end
 end

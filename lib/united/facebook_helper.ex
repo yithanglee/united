@@ -7,10 +7,10 @@ defmodule FacebookHelper do
   @app_secret Application.get_env(:united, :facebook)[:app_secret]
   @app_id Application.get_env(:united, :facebook)[:app_id]
 
-  def stream_comments(fb_video_id_str) do
+  def stream_comments(fb_video_id_str, page_access_token, live_video_id, fb_page_id) do
     url =
       "https://streaming-graph.facebook.com/#{fb_video_id_str}/live_comments?access_token=#{
-        @page_access_token
+        page_access_token
       }&comment_rate=one_per_two_seconds&fields=from{name,id},message"
 
     %HTTPoison.AsyncResponse{id: id} =
@@ -19,24 +19,75 @@ defmodule FacebookHelper do
     if Process.whereis(String.to_atom("fb_vid_" <> fb_video_id_str)) == nil do
       Process.register(self(), String.to_atom("fb_vid_" <> fb_video_id_str))
       IO.puts("chucking.....\n\n")
-      process_httpoison_chunks(id, fb_video_id_str)
+      process_httpoison_chunks(id, fb_video_id_str, live_video_id, fb_page_id)
     else
       IO.puts("process exist...\n\n")
     end
   end
 
-  def process_httpoison_chunks(id, fb_video_id_str) do
+  def get_psid(id, fb_page_id, page_access_token) do
+    app_proof = ""
+    HTTPoison.get("https://graph.facebook.com/v12.0/#{id}/ids_for_pages?
+  page=<OPTIONAL_PAGE_ID>
+  &access_token=#{page_access_token}
+  &appsecret_proof=#{app_proof}")
+  end
+
+  def create_message(comment, fb_page_id, live_video_id) do
+    comment = BluePotion.string_to_atom(comment, Map.keys(comment))
+
+    page_visitor_data = Repo.get_by(PageVisitor, psid: comment.from["id"])
+
+    pv =
+      if page_visitor_data == nil do
+        {:ok, pv} =
+          United.Settings.create_page_visitor(%{
+            psid: comment.from["id"],
+            name: comment.from["name"],
+            facebook_page_id: fb_page_id
+          })
+
+        pv
+      else
+        {:ok, pv} =
+          United.Settings.update_page_visitor(page_visitor_data, %{
+            facebook_page_id: fb_page_id
+          })
+
+        page_visitor_data
+      end
+
+    United.Settings.create_video_comment(%{
+      ms_id: comment.id,
+      page_visitor_id: pv.id,
+      message: comment.message,
+      created_at: NaiveDateTime.utc_now(),
+      live_video_id: live_video_id
+    })
+
+    IO.inspect("facebook_page:#{fb_page_id}")
+
+    UnitedWeb.Endpoint.broadcast("facebook_page:#{pv.facebook_page_id}", "new_msg", %{
+      id: DateTime.utc_now() |> DateTime.to_unix(),
+      name: pv.name,
+      message: comment.message
+    })
+  end
+
+  def process_httpoison_chunks(id, fb_video_id_str, live_video_id, fb_page_id) do
     IO.inspect(self())
     # visitor_company = Repo.get(VisitorCompany, visitor_company_id)
 
     receive do
       %HTTPoison.AsyncStatus{id: ^id} ->
         # TODO handle status
-        process_httpoison_chunks(id, fb_video_id_str)
+        IO.inspect("async status")
+        process_httpoison_chunks(id, fb_video_id_str, live_video_id, fb_page_id)
 
       %HTTPoison.AsyncHeaders{id: ^id, headers: %{"Connection" => "keep-alive"}} ->
         # TODO handle headers
-        process_httpoison_chunks(id, fb_video_id_str)
+        IO.inspect("async header")
+        process_httpoison_chunks(id, fb_video_id_str, live_video_id, fb_page_id)
 
       %HTTPoison.AsyncChunk{id: ^id, chunk: chunk_data} ->
         IO.puts(chunk_data)
@@ -45,9 +96,17 @@ defmodule FacebookHelper do
           comment = chunk_data |> String.replace("data: ", "") |> Poison.decode!()
           datetime = Timex.now()
           IO.inspect(comment)
+
+          comment_sample = %{
+            "from" => %{"id" => "104846188059707", "name" => "Damien's Lab"},
+            "id" => "1870591243330022_1870607033328443",
+            "message" => "test"
+          }
+
+          Elixir.Task.start_link(__MODULE__, :create_message, [comment, fb_page_id, live_video_id])
         end
 
-        process_httpoison_chunks(id, fb_video_id_str)
+        process_httpoison_chunks(id, fb_video_id_str, live_video_id, fb_page_id)
 
       %HTTPoison.AsyncEnd{id: ^id} ->
         IO.puts("fb_vid_#{fb_video_id_str} ended")
@@ -185,7 +244,12 @@ defmodule FacebookHelper do
 
             get_live_video(live_now["id"], pat, live_video)
             # stream_comments()
-            Task.start_link(__MODULE__, :stream_comments, [live_now["id"]])
+            Task.start_link(__MODULE__, :stream_comments, [
+              live_now["id"],
+              pat,
+              live_video.id,
+              page.id
+            ])
 
             live_video |> BluePotion.s_to_map()
           end

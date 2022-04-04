@@ -55,6 +55,7 @@ defmodule UnitedWeb.Router do
     delete("/webhook", ApiController, :webhook_delete)
     get("/:model", ApiController, :datatable)
     post("/:model", ApiController, :form_submission)
+    delete("/:model/:id", ApiController, :delete_data)
   end
 
   # Other scopes may use custom stacks.
