@@ -19,6 +19,14 @@ defmodule United.Application do
       # {United.Worker, arg}
     ]
 
+    path = File.cwd!() <> "/media"
+
+    if File.exists?(path) == false do
+      File.mkdir(File.cwd!() <> "/media")
+    end
+
+    File.rm_rf("./priv/static/images/uploads")
+    File.ln_s("#{File.cwd!()}/media/", "./priv/static/images/uploads")
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: United.Supervisor]

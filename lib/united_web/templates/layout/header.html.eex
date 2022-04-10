@@ -4,7 +4,6 @@
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-
     <div class="collapse navbar-collapse" id="navbarColor02">
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
@@ -38,11 +37,15 @@
           </div>
         </li>
       </ul>
-      <form class="d-flex">
-        <input class="form-control me-sm-2" type="text" placeholder="Search">
-        <button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>
+      <form class="d-flex" action="javascript:void(0);">
+        <input id="tsearch" class="form-control me-sm-2" type="text" placeholder="Search">
+        <button class="btn btn-secondary my-2 my-sm-0" onclick="setCurrentPage('searchAll();', 'Search')" type="submit">Search</button>
       </form>
     </div>
   </div>
 </nav>
-
+<script type="text/javascript">
+$("button[data-bs-target='#navbarColor02']").on("click", () => {
+  $("#profile_card").toggleClass("d-none")
+})
+</script>

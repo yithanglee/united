@@ -1,16 +1,16 @@
 <div class="bg-secondary" style="height: 200px;">
-  <div class="d-flex justify-content-center align-items-center">
-    <div style="width: 100px;height: 100px;" class="rounded-circle text-center bg-primary d-flex align-items-center justify-content-center text-white">
-      <span style="font-size: 4em;" id="company_initial">U</span>
+  <div class="d-flex justify-content-center align-items-center pt-4 ">
+    <div id="profile_pic" style="width: 100px;height: 100px;" class="rounded-circle text-center bg-primary d-flex align-items-center justify-content-center text-white">
+      <span style="font-size: 4em;" id="user_initial">U</span>
     </div>
   </div>
   <div class="d-flex flex-column justify-content-center text-center text-white">
-    <span class="lead" id="cur_company">Famour User</span>
-    <a href="javascript:void(0);" onclick="setOrganization()">Edit Profile</a>
+    <span class="lead" id="cur_user">Famour User</span>
+    <a href="javascript:void(0);" onclick="editProfile()">Edit Profile</a>
   </div>
 </div>
 <div class="list-group">
-  <a href="javascript:void(0);" onclick="setCurrentPage('window.init();', 'Home')" class="list-group-item list-group-item-action">
+  <a href="javascript:void(0);" onclick="setCurrentPage('dashboardInit();', 'Home')" class="list-group-item list-group-item-action">
     <span class="badge bg-primary rounded-pill">
       <i class="fa fa-sm fa-tachometer-alt"></i>
     </span>
@@ -34,6 +34,14 @@
   </a>
 </div>
 <script type="text/javascript">
+$(document).ready(() => {
+
+    var pdata = App.api("get_profile", { token: window.userToken })
+
+  $("#profile_pic").attr('style',`background-size: cover; background-image: url('`+pdata.image_url+`'); height: 100px;width: 100px`);
+  $("#user_initial").hide();
+  $("#cur_user").html(pdata.full_name)
+})
 
 
 </script>

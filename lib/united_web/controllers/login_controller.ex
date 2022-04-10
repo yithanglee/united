@@ -38,8 +38,16 @@ defmodule UnitedWeb.LoginController do
       users = Repo.all(from u in Settings.User, where: u.username == ^params["username"])
       user = List.first(users)
 
+      token =
+        Phoenix.Token.sign(
+          UnitedWeb.Endpoint,
+          "signature",
+          BluePotion.s_to_map(user) |> Map.take([:id, :name])
+        )
+
       conn
       |> put_session(:current_user, BluePotion.s_to_map(user))
+      |> put_session(:user_token, token)
       |> put_flash(:info, "Welcome!")
       |> redirect(to: "/admin/dashboard")
     else

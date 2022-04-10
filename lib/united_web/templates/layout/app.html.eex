@@ -24,6 +24,9 @@
   <link rel="stylesheet" type="text/css" href="/vendor/slick/slick.css" />
   <link rel="stylesheet" type="text/css" href="/vendor/slick/slick-theme.css" />
   <script type="text/javascript" src="/vendor/slick/slick.js"></script>
+  <script type="text/javascript">
+    window.userToken = "<%= @conn.private.plug_session["user_token"]%>"
+  </script>
 </head>
 
 <body>
@@ -31,7 +34,7 @@
   <div class="container-fluid px-0">
     
     <div class="row g-0">
-      <div class="col-12 col-lg-2">
+      <div class="col-12 col-lg-2 d-none d-lg-block"  id="profile_card">
         <%= render("sidebar.html", conn: @conn) %>
 
 

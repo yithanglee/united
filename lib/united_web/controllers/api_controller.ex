@@ -144,6 +144,44 @@ defmodule UnitedWeb.ApiController do
   def webhook_post(conn, params) do
     final =
       case params["scope"] do
+        "strong_search" ->
+          q = params["query"]
+
+          United.Settings.strong_search_book_inventory(q)
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
+        "update_profile" ->
+          {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
+          user = United.Settings.get_user!(map.id)
+          res = United.Settings.update_user(user, BluePotion.upload_file(params["User"]))
+
+          case res do
+            {:ok, u} ->
+              %{status: "ok"}
+
+            {:error, cg} ->
+              IO.inspect(cg)
+              %{status: "error"}
+          end
+
+        "process_books" ->
+          {:ok, res} = File.read(params["books"].path)
+
+          {header, contents} =
+            res
+            |> String.split("\r\n")
+            |> List.pop_at(0)
+
+          data =
+            for content <- contents do
+              Enum.zip(header |> String.split(","), content |> String.split(","))
+              |> Enum.into(%{})
+            end
+            |> IO.inspect()
+
+          United.Settings.upload_books(data)
+          %{status: "ok"}
+
         "process_loan" ->
           %{
             "barcode" => barcode,
@@ -212,6 +250,14 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "get_profile" ->
+          {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
+
+          United.Settings.get_user!(map.id)
+          |> BluePotion.s_to_map()
+          |> Map.delete(:id)
+          |> Map.put(:crypted_password, "")
+
         "return_book" ->
           United.Settings.return_book(params["loan_id"])
           %{status: "received"}
@@ -304,6 +350,8 @@ defmodule UnitedWeb.ApiController do
     |> send_resp(200, Jason.encode!(final))
   end
 
+  require IEx
+
   def form_submission(conn, params) do
     model = Map.get(params, "model")
     params = Map.delete(params, "model")
@@ -364,8 +412,23 @@ defmodule UnitedWeb.ApiController do
         """
       end
 
-    {result, _values} =
-      Code.eval_string(dynamic_code, params: Map.get(params, model) |> United.upload_file())
+    p = Map.get(params, model)
+
+    p =
+      if model == "User" do
+        case p["id"] |> Integer.parse() do
+          :error ->
+            {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", p["id"])
+            Map.put(p, "id", map.id)
+
+          _ ->
+            p
+        end
+      else
+        p
+      end
+
+    {result, _values} = Code.eval_string(dynamic_code, params: p |> United.upload_file())
 
     IO.inspect(result)
 

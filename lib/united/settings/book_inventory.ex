@@ -9,6 +9,8 @@ defmodule United.Settings.BookInventory do
     belongs_to(:book, United.Settings.Book, on_replace: :update)
     has_one(:author, through: [:book, :author])
     has_one(:publisher, through: [:book, :publisher])
+
+    has_many(:book_images, through: [:book, :book_images])
     field :code, :string
 
     timestamps()

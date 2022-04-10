@@ -1876,6 +1876,28 @@ defmodule United.Settings do
     Repo.delete(model)
   end
 
+  alias United.Settings.BookImage
+
+  def list_book_images() do
+    Repo.all(BookImage)
+  end
+
+  def get_book_image!(id) do
+    Repo.get!(BookImage, id)
+  end
+
+  def create_book_image(params \\ %{}) do
+    BookImage.changeset(%BookImage{}, params) |> Repo.insert()
+  end
+
+  def update_book_image(model, params) do
+    BookImage.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_book_image(%BookImage{} = model) do
+    Repo.delete(model)
+  end
+
   alias United.Settings.Group
 
   def list_groups() do
@@ -1922,6 +1944,30 @@ defmodule United.Settings do
         |> or_where([m, g], ilike(m.ic, ^"%#{params["member_code"]}%"))
         |> or_where([m, g], ilike(m.phone, ^"%#{params["member_code"]}%"))
       end
+
+    Repo.all(q)
+  end
+
+  def strong_search_book_inventory(query) do
+    q =
+      from(bi in BookInventory,
+        left_join: b in Book,
+        on: b.id == bi.book_id,
+        left_join: a in Author,
+        on: a.id == b.author_id,
+        left_join: p in Publisher,
+        on: p.id == b.publisher_id,
+        left_join: c in BookCategory,
+        on: c.id == bi.book_category_id,
+        where: ilike(bi.code, ^"%#{query}%"),
+        preload: [:author, :publisher, :book_category, :book, :book_images],
+        limit: 100
+      )
+      |> or_where([bi, b, a, p, c], ilike(b.isbn, ^"%#{query}%"))
+      |> or_where([bi, b, a, p, c], ilike(b.call_number, ^"%#{query}%"))
+      |> or_where([bi, b, a, p, c], ilike(b.title, ^"%#{query}%"))
+      |> or_where([bi, b, a, p, c], ilike(a.name, ^"%#{query}%"))
+      |> or_where([bi, b, a, p, c], ilike(p.name, ^"%#{query}%"))
 
     Repo.all(q)
   end
@@ -1998,7 +2044,7 @@ defmodule United.Settings do
   end
 
   def update_book_inventory(model, params) do
-    model = model |> Repo.preload([:book, :book_category, :author])
+    model = model |> Repo.preload([:book_category, :author, book: [:book_images]])
 
     if "update_assoc" in Map.keys(params) do
       assocs = Map.keys(params["update_assoc"])
@@ -2008,8 +2054,55 @@ defmodule United.Settings do
 
       data = Ecto.Changeset.cast(model, p, cols)
 
-      Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
-      |> Repo.update()
+      # process the image
+      # delete from disk
+      # upload to s3 params["book_image.img_url"]
+
+      res =
+        Multi.new()
+        |> Multi.run(:book_inventory, fn _repo, %{} ->
+          Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
+          |> Repo.update()
+        end)
+        |> Multi.run(:book, fn _repo, %{book_inventory: book_inventory} ->
+          # Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
+          # |> Repo.update()
+
+          if "book_image.img_url" in Map.keys(params) do
+            filename =
+              params["book_image.img_url"]
+              |> String.replace("/images/uploads", "")
+
+            United.s3_large_upload(filename)
+
+            Repo.delete_all(
+              from i in BookImage,
+                where: i.book_id == ^book_inventory.book.id and is_nil(i.group)
+            )
+
+            Repo.delete_all(
+              from i in BookImage,
+                where: i.book_id == ^book_inventory.book.id and i.group == ^"cover"
+            )
+
+            Ecto.Changeset.cast(
+              %BookImage{},
+              %{
+                group: "cover",
+                book_id: book_inventory.book.id,
+                img_url: "https://ap-south-1.linodeobjects.com/damien-bucket#{filename}"
+              },
+              [:book_id, :img_url, :group]
+            )
+            |> Repo.insert()
+          else
+            {:ok, nil}
+          end
+        end)
+        |> Repo.transaction()
+
+      {:ok, multi} = res
+      {:ok, multi.book_inventory}
     else
       BookInventory.update_changeset(model, params) |> Repo.update()
     end
@@ -2042,5 +2135,127 @@ defmodule United.Settings do
     l = get_loan!(loan_id)
 
     update_loan(l, %{has_return: true})
+  end
+
+  def setup_book(
+        %{
+          "AUTHOR" => author_name,
+          "BARCODE" => barcode,
+          "BOOK NO" => _empty1,
+          "CALL NO" => _empty2,
+          "CATEGORY NAME" => _empty3,
+          "COAUTHOR" => coauthor_name,
+          "DESCRIPTION" => description,
+          "ILLUSTRATOR" => illustrator_name,
+          "ISBN" => isbn,
+          "PRICE" => _empty4,
+          "PUBLISHER" => publisher_name,
+          "PURCHASE DATE" => _empty5,
+          "PURHCHASE INVOICE" => _empty6,
+          "SEQ" => _empty7,
+          "SERIES" => series_name,
+          "TITLE " => title,
+          "TRANSLATOR" => translator_name,
+          "VOLUME" => _empty8
+        } = map_d
+      ) do
+    a = Repo.get_by(Author, name: author_name)
+
+    author =
+      if a == nil do
+        {:ok, a} = create_author(%{name: author_name})
+        a
+      else
+        a
+      end
+
+    p = Repo.get_by(Publisher, name: publisher_name)
+
+    publisher =
+      if p == nil do
+        case create_publisher(%{name: publisher_name}) do
+          {:ok, p} ->
+            p
+
+          _ ->
+            nil
+        end
+      else
+        p
+      end
+
+    b = Repo.get_by(Book, title: title)
+
+    book =
+      if b == nil do
+        b_cg =
+          Ecto.Changeset.cast(
+            %Book{},
+            %{
+              description: description,
+              isbn: isbn,
+              call_number: barcode,
+              title: title,
+              author_id: author.id,
+              publisher_id: if(publisher != nil, do: publisher.id)
+            },
+            [:description, :title, :author_id, :publisher_id, :call_number, :isbn]
+          )
+          |> Repo.insert()
+
+        case b_cg do
+          {:ok, b} ->
+            Ecto.Changeset.cast(
+              %BookInventory{},
+              %{
+                book_id: b.id,
+                code: barcode
+              },
+              [:book_id, :code]
+            )
+            |> Repo.insert()
+
+          _ ->
+            nil
+        end
+      else
+        b
+
+        bi = Repo.get_by(BookInventory, book_id: b.id, code: barcode)
+
+        if bi == nil do
+          Ecto.Changeset.cast(
+            %BookInventory{},
+            %{
+              book_id: b.id,
+              code: barcode
+            },
+            [:book_id, :code]
+          )
+          |> Repo.insert()
+        end
+      end
+  end
+
+  def setup_book(params) do
+    IO.inspect(params)
+  end
+
+  def upload_books(data) do
+    for map_d <- data do
+      # Elixir.Task.start_link(__MODULE__, :setup_book, [map_d])
+      setup_book(map_d)
+    end
+  end
+
+  def reset_books() do
+    Repo.delete_all(Publisher)
+    Repo.delete_all(Author)
+
+    Repo.delete_all(Book)
+
+    Repo.delete_all(BookInventory)
+
+    Repo.delete_all(Loan)
   end
 end

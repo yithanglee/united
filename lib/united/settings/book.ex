@@ -11,7 +11,7 @@ defmodule United.Settings.Book do
     field :call_number, :string
     belongs_to(:author, United.Settings.Author, on_replace: :update)
     belongs_to(:publisher, United.Settings.Publisher, on_replace: :update)
-
+    has_many(:book_images, United.Settings.BookImage)
     timestamps()
   end
 
@@ -21,6 +21,7 @@ defmodule United.Settings.Book do
     |> cast(attrs, [:call_number, :isbn, :title, :description])
     |> cast_assoc(:author)
     |> cast_assoc(:publisher)
+    |> cast_assoc(:book_images)
     |> validate_required([:title])
   end
 

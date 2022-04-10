@@ -13,6 +13,9 @@ defmodule United.Settings.User do
     field :user_access_token, :string
     field :fb_user_id, :string
     field :fb_psid, :string
+    field :image_url, :string
+    field :role_id, :integer
+
     has_many(:facebook_pages, United.Settings.FacebookPage, foreign_key: :user_id)
     timestamps()
   end
@@ -21,6 +24,8 @@ defmodule United.Settings.User do
   def changeset(user, attrs) do
     user
     |> cast(attrs, [
+      :image_url,
+      :role_id,
       :fb_user_id,
       :fb_psid,
       :user_access_token,
