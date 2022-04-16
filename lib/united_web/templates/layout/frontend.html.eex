@@ -23,7 +23,10 @@
   </head>
   <body style="overflow-x: hidden;"> 
     <% render("frontend_nav.html", conn: @conn) %>
-    <%= @inner_content %>
+    <div class="container-fluid gx-0">
+      
+      <%= @inner_content %>
+    </div>
     <script type="text/javascript">
     $(document).ready(function(){
     <%= cond do %>

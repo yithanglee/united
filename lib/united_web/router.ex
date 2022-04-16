@@ -23,6 +23,16 @@ defmodule UnitedWeb.Router do
     # plug(Materialize.Authorization)
   end
 
+  scope "/member", UnitedWeb do
+    pipe_through :browser
+    get("/dashboard", PageController, :member_dashboard)
+    get("/login", LoginController, :index)
+    get("/reset", LoginController, :reset)
+    post("/reset", LoginController, :set_new_member_password)
+    post("/authenticate", LoginController, :authenticate)
+    get("/logout", LoginController, :logout)
+  end
+
   scope "/admin", UnitedWeb do
     pipe_through :browser
     get("/dashboard", PageController, :dashboard)

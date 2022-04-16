@@ -5,7 +5,7 @@ defmodule United.Settings.Author do
   schema "authors" do
     field :bio, :binary
     field :name, :string
-
+    has_many(:book, United.Settings.Book)
     timestamps()
   end
 

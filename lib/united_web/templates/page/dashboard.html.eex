@@ -1,6 +1,7 @@
 <div id="content">
 </div>
 <script type="text/javascript">
+  
 function listLoans() {
   console.log("loan is working")
   // call the page html
@@ -27,6 +28,11 @@ function listMembers() {
 
 function searchAll() {
     content = App.html('search.html')
+  $("#content").html(content)
+}
+
+function uploadPage() {
+    content = App.html('upload.html')
   $("#content").html(content)
 }
 

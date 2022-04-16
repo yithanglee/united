@@ -7,6 +7,8 @@ defmodule United.Settings.BookImage do
     belongs_to(:book, United.Settings.Book)
     field :group, :string
     field :img_url, :string
+    has_one(:author, through: [:book, :author])
+    has_one(:publisher, through: [:book, :publisher])
 
     timestamps()
   end

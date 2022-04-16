@@ -24,6 +24,12 @@
   <link rel="stylesheet" type="text/css" href="/vendor/slick/slick.css" />
   <link rel="stylesheet" type="text/css" href="/vendor/slick/slick-theme.css" />
   <script type="text/javascript" src="/vendor/slick/slick.js"></script>
+  <script src="/vendor/json-viewer/jquery.json-viewer.js"></script>
+<link href="/vendor/json-viewer/jquery.json-viewer.css" type="text/css" rel="stylesheet">
+<link rel="stylesheet" href="/vendor/jexcel/jexcel.css">
+<script src="/vendor/jexcel/jexcel.js"></script>
+<script src="/vendor/jexcel/jsuites.js"></script>
+<link rel="stylesheet" href="/vendor/jexcel/jsuites.css">
   <script type="text/javascript">
     window.userToken = "<%= @conn.private.plug_session["user_token"]%>"
   </script>

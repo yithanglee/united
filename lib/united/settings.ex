@@ -1920,6 +1920,28 @@ defmodule United.Settings do
     Repo.delete(model)
   end
 
+  alias United.Settings.BookUpload
+
+  def list_book_uploads() do
+    Repo.all(BookUpload)
+  end
+
+  def get_book_upload!(id) do
+    Repo.get!(BookUpload, id)
+  end
+
+  def create_book_upload(params \\ %{}) do
+    BookUpload.changeset(%BookUpload{}, params) |> Repo.insert()
+  end
+
+  def update_book_upload(model, params) do
+    BookUpload.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_book_upload(%BookUpload{} = model) do
+    Repo.delete(model)
+  end
+
   alias United.Settings.BookInventory
 
   def list_book_inventories() do
@@ -2152,110 +2174,243 @@ defmodule United.Settings do
           "PUBLISHER" => publisher_name,
           "PURCHASE DATE" => _empty5,
           "PURHCHASE INVOICE" => _empty6,
-          "SEQ" => _empty7,
           "SERIES" => series_name,
-          "TITLE " => title,
+          "TITLE" => title,
           "TRANSLATOR" => translator_name,
           "VOLUME" => _empty8
-        } = map_d
+        } = map_d,
+        bu
       ) do
-    a = Repo.get_by(Author, name: author_name)
+    unless map_d |> Map.values() |> Enum.uniq() |> List.first() == "" do
+      a = Repo.get_by(Author, name: author_name)
 
-    author =
-      if a == nil do
-        {:ok, a} = create_author(%{name: author_name})
-        a
-      else
-        a
-      end
-
-    p = Repo.get_by(Publisher, name: publisher_name)
-
-    publisher =
-      if p == nil do
-        case create_publisher(%{name: publisher_name}) do
-          {:ok, p} ->
-            p
-
-          _ ->
-            nil
+      author =
+        if a == nil do
+          {:ok, a} = create_author(%{name: author_name})
+          a
+        else
+          a
         end
-      else
-        p
-      end
 
-    b = Repo.get_by(Book, title: title)
+      p = Repo.get_by(Publisher, name: publisher_name)
 
-    book =
-      if b == nil do
-        b_cg =
-          Ecto.Changeset.cast(
-            %Book{},
-            %{
-              description: description,
-              isbn: isbn,
-              call_number: barcode,
-              title: title,
-              author_id: author.id,
-              publisher_id: if(publisher != nil, do: publisher.id)
-            },
-            [:description, :title, :author_id, :publisher_id, :call_number, :isbn]
-          )
-          |> Repo.insert()
+      publisher =
+        if p == nil do
+          case create_publisher(%{name: publisher_name}) do
+            {:ok, p} ->
+              p
 
-        case b_cg do
-          {:ok, b} ->
+            _ ->
+              nil
+          end
+        else
+          p
+        end
+
+      b = Repo.get_by(Book, title: title, isbn: "#{isbn}")
+
+      book =
+        if b == nil do
+          b_cg =
             Ecto.Changeset.cast(
-              %BookInventory{},
+              %Book{},
               %{
-                book_id: b.id,
-                code: barcode
+                description: description,
+                isbn: "#{isbn}",
+                call_number: barcode,
+                title: title,
+                author_id: author.id,
+                publisher_id: if(publisher != nil, do: publisher.id)
               },
-              [:book_id, :code]
+              [:description, :title, :author_id, :publisher_id, :call_number, :isbn]
             )
             |> Repo.insert()
 
-          _ ->
-            nil
+          case b_cg do
+            {:ok, b} ->
+              res =
+                Ecto.Changeset.cast(
+                  %BookInventory{},
+                  %{
+                    book_id: b.id,
+                    code: barcode,
+                    book_upload_id: bu.id
+                  },
+                  [:book_id, :code, :book_upload_id]
+                )
+                |> Repo.insert()
+
+              case res do
+                {:ok, bi} ->
+                  {:ok, "book, inventory successful"}
+
+                {:error, bi_cg} ->
+                  {reason, message} = bi_cg.errors |> hd()
+                  {proper_message, message_list} = message
+                  final_reason = Atom.to_string(reason) <> " " <> proper_message
+                  {:error, "inventory error - #{final_reason}", map_d}
+              end
+
+            {:error, b_cg} ->
+              {reason, message} = b_cg.errors |> hd()
+              {proper_message, message_list} = message
+              final_reason = Atom.to_string(reason) <> " " <> proper_message
+              {:error, "book error - #{final_reason}", map_d}
+          end
+        else
+          b
+
+          bi = Repo.get_by(BookInventory, book_id: b.id, code: barcode)
+
+          if bi == nil do
+            res =
+              Ecto.Changeset.cast(
+                %BookInventory{},
+                %{
+                  book_id: b.id,
+                  code: barcode,
+                  book_upload_id: bu.id
+                },
+                [:book_id, :code, :book_upload_id]
+              )
+              |> Repo.insert()
+
+            case res do
+              {:ok, bi} ->
+                {:ok, "book, inventory successful"}
+
+              {:error, bi_cg} ->
+                {reason, message} = bi_cg.errors |> hd()
+                {proper_message, message_list} = message
+                final_reason = Atom.to_string(reason) <> " " <> proper_message
+                {:error, "inventory error  - #{final_reason}", map_d}
+            end
+          else
+            {:error, "book inventory already exist", map_d}
+          end
         end
-      else
-        b
-
-        bi = Repo.get_by(BookInventory, book_id: b.id, code: barcode)
-
-        if bi == nil do
-          Ecto.Changeset.cast(
-            %BookInventory{},
-            %{
-              book_id: b.id,
-              code: barcode
-            },
-            [:book_id, :code]
-          )
-          |> Repo.insert()
-        end
-      end
-  end
-
-  def setup_book(params) do
-    IO.inspect(params)
-  end
-
-  def upload_books(data) do
-    for map_d <- data do
-      # Elixir.Task.start_link(__MODULE__, :setup_book, [map_d])
-      setup_book(map_d)
     end
   end
 
-  def reset_books() do
+  def setup_book(params, bu) do
+    IO.inspect(params)
+    {:error, "unknown error", params}
+  end
+
+  require IEx
+
+  def upload_books(data, bu) do
+    upload_lines =
+      for map_d <- data do
+        # Elixir.Task.start_link(__MODULE__, :setup_book, [map_d])
+        # IEx.pry()
+
+        m =
+          map_d
+          |> Map.take([
+            "TITLE",
+            "BARCODE",
+            "ISBN",
+            "AUTHOR",
+            "PUBLISHER",
+            "DESCRIPTION",
+            "CALL NO",
+            "CATEGORY NAME",
+            "COAUTHOR",
+            "TRANSLATOR",
+            "ILLUSTRATOR",
+            "SERIES",
+            "VOLUME",
+            "PURCHASE DATE",
+            "PURHCHASE INVOICE",
+            "BOOK NO",
+            "PRICE"
+          ])
+          |> IO.inspect()
+
+        setup_book(m, bu)
+      end
+      |> Enum.reject(&(&1 == nil))
+      |> List.flatten()
+
+    success = upload_lines |> Enum.reject(&(&1 |> elem(0) == :error))
+
+    failed_lines = upload_lines |> Enum.filter(&(&1 |> elem(0) == :error))
+
+    failed_lines =
+      for {:error, reason, map} <- failed_lines do
+        Map.put(map, "REASON", reason)
+      end
+
+    update_book_upload(bu, %{
+      failed_qty: Enum.count(failed_lines),
+      uploaded_qty: Enum.count(success),
+      failed_lines: Jason.encode!(failed_lines)
+    })
+  end
+
+  def reset_all() do
     Repo.delete_all(Publisher)
     Repo.delete_all(Author)
-
     Repo.delete_all(Book)
-
     Repo.delete_all(BookInventory)
-
     Repo.delete_all(Loan)
+    Repo.delete_all(BookUpload)
+  end
+
+  def reset_books() do
+    Repo.delete_all(BookInventory)
+    Repo.delete_all(Loan)
+    Repo.delete_all(BookUpload)
+  end
+
+  def get_member_by_email(email) do
+    Repo.all(from m in Member, where: m.email == ^email, limit: 1) |> List.first()
+  end
+
+  def member_token(id) do
+    Phoenix.Token.sign(
+      UnitedWeb.Endpoint,
+      "member_signature",
+      %{id: id}
+    )
+  end
+
+  def decode_member_token(token) do
+    case Phoenix.Token.verify(UnitedWeb.Endpoint, "member_signature", token) do
+      {:ok, map} ->
+        map
+
+      {:error, _reason} ->
+        nil
+    end
+  end
+
+  def verify_member_token(token, id) do
+    {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "member_signature", token)
+    map.id == id
+  end
+
+  def get_intro_books() do
+    Repo.all(
+      from bi in BookImage,
+        left_join: b in Book,
+        on: b.id == bi.book_id,
+        left_join: i in BookInventory,
+        on: i.book_id == b.id,
+        preload: [:publisher, :author, book: [:author, :publisher]]
+    )
+  end
+
+  def get_book_by_isbn(isbn) do
+    a =
+      Repo.all(from b in Book, where: b.isbn == ^isbn, preload: [:author, :publisher])
+      |> List.first()
+
+    if a != nil do
+      a |> BluePotion.s_to_map()
+    else
+      nil
+    end
   end
 end

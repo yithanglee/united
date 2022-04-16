@@ -9,13 +9,16 @@ defmodule United.Settings.Member do
     field :email, :string
     field :fb_user_id, :string
     # field :group_id, :integer
+    field :password, :string, virtual: true
+    field :crypted_password, :binary
     belongs_to(:group, United.Settings.Group)
     field :ic, :string
     field :name, :string
     field :phone, :string
     field :postcode, :string
     field :psid, :string
-
+    field :username, :string
+    field :image_url, :string
     timestamps()
   end
 
@@ -23,9 +26,12 @@ defmodule United.Settings.Member do
   def changeset(member, attrs) do
     member
     |> cast(attrs, [
+      :username,
+      :image_url,
       :name,
       :address,
       :postcode,
+      :crypted_password,
       :city,
       :group_id,
       :fb_user_id,

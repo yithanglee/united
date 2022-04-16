@@ -56,7 +56,10 @@ defmodule United.MixProject do
       {:distillery, "~> 2.1"},
       {:httpoison, "~> 1.8"},
       {:timex, "~> 3.0"},
-      {:blue_potion, "~> 0.1.2", override: true, git: "https://github.com/yithanglee/blue_potion"}
+      {:blue_potion, "~> 0.1.2",
+       override: true, git: "https://github.com/yithanglee/blue_potion"},
+      {:csv, "~> 2.0.0"},
+      {:xlsxir, "~> 1.6.4"}
     ]
   end
 

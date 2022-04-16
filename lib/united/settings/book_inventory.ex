@@ -9,7 +9,7 @@ defmodule United.Settings.BookInventory do
     belongs_to(:book, United.Settings.Book, on_replace: :update)
     has_one(:author, through: [:book, :author])
     has_one(:publisher, through: [:book, :publisher])
-
+    field :book_upload_id, :integer
     has_many(:book_images, through: [:book, :book_images])
     field :code, :string
 
@@ -19,11 +19,11 @@ defmodule United.Settings.BookInventory do
   @doc false
   def changeset(book_inventory, attrs) do
     book_inventory
-    |> cast(attrs, [:code, :book_category_id])
+    |> cast(attrs, [:book_upload_id, :code, :book_category_id])
   end
 
   def update_changeset(book_inventory, attrs) do
     book_inventory
-    |> cast(attrs, [:book_id, :code, :book_category_id])
+    |> cast(attrs, [:book_upload_id, :book_id, :code, :book_category_id])
   end
 end

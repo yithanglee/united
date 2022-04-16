@@ -150,6 +150,20 @@ defmodule UnitedWeb.ApiController do
           United.Settings.strong_search_book_inventory(q)
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
+        "update_member_profile" ->
+          {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
+          user = United.Settings.get_member!(map.id)
+          res = United.Settings.update_member(user, BluePotion.upload_file(params["Member"]))
+
+          case res do
+            {:ok, u} ->
+              %{status: "ok"}
+
+            {:error, cg} ->
+              IO.inspect(cg)
+              %{status: "error"}
+          end
+
         "update_profile" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
           user = United.Settings.get_user!(map.id)
@@ -165,21 +179,99 @@ defmodule UnitedWeb.ApiController do
           end
 
         "process_books" ->
-          {:ok, res} = File.read(params["books"].path)
-
-          {header, contents} =
-            res
-            |> String.split("\r\n")
-            |> List.pop_at(0)
+          type = params["books"].filename |> String.split(".") |> Enum.fetch!(1)
 
           data =
-            for content <- contents do
-              Enum.zip(header |> String.split(","), content |> String.split(","))
-              |> Enum.into(%{})
-            end
-            |> IO.inspect()
+            case type do
+              "xlsx" ->
+                {:ok, tid} = Xlsxir.extract(params["books"].path, 0)
+                bin = Xlsxir.get_list(tid)
 
-          United.Settings.upload_books(data)
+                header = bin |> List.first()
+                body = bin |> List.delete_at(0) |> IO.inspect()
+
+                result =
+                  for content <- body do
+                    h = header |> Enum.map(fn x -> String.upcase(x) |> String.trim() end)
+
+                    content =
+                      content |> Enum.map(fn x -> x end) |> Enum.filter(fn x -> x != "\"" end)
+
+                    c =
+                      for item <- content do
+                        item =
+                          if is_float(item) == true do
+                            item |> Float.to_string()
+                          else
+                            item
+                          end
+
+                        item =
+                          case item do
+                            "@@@" ->
+                              ","
+
+                            "\\N" ->
+                              ""
+
+                            _ ->
+                              item
+                          end
+
+                        a =
+                          case item do
+                            {:ok, i} ->
+                              i
+
+                            _ ->
+                              cond do
+                                item == " " ->
+                                  "null"
+
+                                item == "  " ->
+                                  "null"
+
+                                item == "   " ->
+                                  "null"
+
+                                item == nil ->
+                                  "null"
+
+                                true ->
+                                  item
+                              end
+                          end
+                      end
+
+                    item_param =
+                      Enum.zip(h, c)
+                      |> Enum.into(%{})
+                      |> IO.inspect()
+                  end
+
+              _ ->
+                {:ok, res} = File.read(params["books"].path)
+
+                {header, contents} =
+                  res
+                  |> String.split("\r\n")
+                  |> List.pop_at(0)
+
+                data =
+                  for content <- contents do
+                    Enum.zip(
+                      header |> String.split(","),
+                      content |> String.split(",") |> Enum.map(&(&1 |> String.trim()))
+                    )
+                    |> Enum.into(%{})
+                  end
+                  |> IO.inspect()
+            end
+
+          {:ok, bu} = United.Settings.create_book_upload()
+          United.Settings.upload_books(data, bu)
+
+          # keep a copy of the upload data else modify the uploaded data and write back to csv file for user to modify
           %{status: "ok"}
 
         "process_loan" ->
@@ -250,6 +342,30 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "show_book" ->
+          United.Settings.get_book_by_isbn(params["isbn"])
+
+        "book_intro" ->
+          United.Settings.get_intro_books()
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
+        # |> Enum.take(1)
+
+        "get_token" ->
+          # for member only
+          m = United.Settings.get_member_by_email(params["email"])
+          # |> BluePotion.s_to_map() 
+
+          United.Settings.member_token(m.id)
+
+        "get_member_profile" ->
+          {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
+
+          United.Settings.get_member!(map.id)
+          |> BluePotion.s_to_map()
+          |> Map.delete(:id)
+          |> Map.put(:crypted_password, "")
+
         "get_profile" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
 
@@ -415,17 +531,29 @@ defmodule UnitedWeb.ApiController do
     p = Map.get(params, model)
 
     p =
-      if model == "User" do
-        case p["id"] |> Integer.parse() do
-          :error ->
-            {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", p["id"])
-            Map.put(p, "id", map.id)
+      case model do
+        "Member" ->
+          case p["id"] |> Integer.parse() do
+            :error ->
+              {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", p["id"])
+              Map.put(p, "id", map.id)
 
-          _ ->
-            p
-        end
-      else
-        p
+            _ ->
+              p
+          end
+
+        "User" ->
+          case p["id"] |> Integer.parse() do
+            :error ->
+              {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", p["id"])
+              Map.put(p, "id", map.id)
+
+            _ ->
+              p
+          end
+
+        _ ->
+          p
       end
 
     {result, _values} = Code.eval_string(dynamic_code, params: p |> United.upload_file())
@@ -451,10 +579,32 @@ defmodule UnitedWeb.ApiController do
     end
   end
 
+  require IEx
+
   def datatable(conn, params) do
     model = Map.get(params, "model")
     preloads = Map.get(params, "preloads")
+    additional_search_queries = Map.get(params, "additional_search_queries")
     params = Map.delete(params, "model") |> Map.delete("preloads")
+
+    additional_search_queries =
+      if additional_search_queries == nil do
+        ""
+      else
+        # replace the data inside
+        # its a list [column1, column2]
+        columns = additional_search_queries |> String.split(",")
+
+        for item <- columns do
+          ss = params["search"]["value"]
+
+          """
+          |> or_where([a], ilike(a.#{item}, ^"%#{ss}%"))
+          """
+        end
+        |> Enum.join("")
+        |> IO.inspect()
+      end
 
     preloads =
       if preloads == nil do
@@ -484,9 +634,10 @@ defmodule UnitedWeb.ApiController do
     IO.inspect(preloads)
 
     json =
-      BluePotion.post_process_datatable(
+      Utility.post_process_datatable(
         params,
         Module.concat(["United", "Settings", model]),
+        additional_search_queries,
         preloads
       )
 
