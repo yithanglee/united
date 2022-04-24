@@ -382,6 +382,10 @@ defmodule UnitedWeb.ApiController do
           United.Settings.book_can_loan(params["book_inventory_id"])
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
+        "all_outstanding_loans" ->
+          United.Settings.all_outstanding_loans()
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
         "member_outstanding_loans" ->
           United.Settings.member_outstanding_loans(params["member_id"])
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
@@ -634,7 +638,7 @@ defmodule UnitedWeb.ApiController do
     IO.inspect(preloads)
 
     json =
-      Utility.post_process_datatable(
+      BluePotion.post_process_datatable(
         params,
         Module.concat(["United", "Settings", model]),
         additional_search_queries,

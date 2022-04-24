@@ -11,12 +11,6 @@
             <span class="visually-hidden">(current)</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('listLoans();', 'Loans')">Loans</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('listBooks();', 'Books')">Books</a>
-        </li>
     
         <li class="nav-item">
           <a class="nav-link" href="javascript:void(0);">Settings</a>

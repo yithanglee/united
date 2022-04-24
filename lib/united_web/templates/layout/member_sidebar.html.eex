@@ -34,10 +34,12 @@
   </a>
 </div>
 <script type="text/javascript">
+    var pdata = App.api("get_member_profile", { token: window.userToken }, () => {
+      window.location = "/member/logout"
+    })
+    window.member = pdata
 $(document).ready(() => {
 
-    var pdata = App.api("get_member_profile", { token: window.userToken })
-    window.member = pdata
 
   $("#profile_pic").attr('style',`background-size: cover; background-image: url('`+pdata.image_url+`'); height: 100px;width: 100px`);
   $("#user_initial").hide();

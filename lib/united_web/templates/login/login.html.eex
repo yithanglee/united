@@ -28,7 +28,7 @@
                 <button id="lg" type="submit" class="btn btn-primary btn-lg">Lets Go <i class="fa fa-caret-right"> </i></button>
                 <a class="btn btn-outline-primary d-none " id="rr" href="./register">Register</a>
                 <a class="btn btn-outline-primary  " id="fp" onclick="forgotPw();" href="javascript:void(0);">Forgot Password</a>
-                <a class="btn btn-lg btn-primary d-none " id="rs" href="./reset">Reset</a>
+                <a class="btn btn-lg btn-primary d-none disabled " id="rs" href="./reset">Reset</a>
               </div>
             </div>
           </div>
@@ -51,9 +51,12 @@ function forgotPw() {
 }
 
 function getTk() {
-  var res = App.api("get_token", { email: $("input[name='email']").val() })
-  h = $("#rs").attr("href")
-  new_h = h + "?token=" + res
-  $("#rs").attr("href", new_h)
+  var res = App.api("get_token", { email: $("input[name='email']").val() }, () => {
+
+    $("#rs").addClass("disabled")
+  }) 
+
+  $("#rs").attr("href", "./reset?token=" + res)
+  $("#rs").removeClass("disabled")
 }
 </script>

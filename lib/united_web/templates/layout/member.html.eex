@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/all.css") %>"/>
   <script type="text/javascript" src="/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="/js/jquery.min.js"></script>
-    <script type="text/javascript" src="/js/bootstrap.notify.js"></script>
+  <script type="text/javascript" src="/js/bootstrap.notify.js"></script>
   <script type="text/javascript" src="/js/alpine.min.js"></script>
   <script type="text/javascript" src="/js/sha.js"></script>
   <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/datatables.min.css") %>"/>
@@ -24,26 +24,22 @@
   <link rel="stylesheet" type="text/css" href="/vendor/slick/slick.css" />
   <link rel="stylesheet" type="text/css" href="/vendor/slick/slick-theme.css" />
   <script type="text/javascript" src="/vendor/slick/slick.js"></script>
+  <script src="/vendor/json-viewer/jquery.json-viewer.js"></script>
+  <link href="/vendor/json-viewer/jquery.json-viewer.css" type="text/css" rel="stylesheet">
   <script type="text/javascript">
-    window.userToken = "<%= @conn.private.plug_session["user_token"]%>"
+  window.userToken = "<%= @conn.private.plug_session["user_token"]%>"
   </script>
 </head>
 
 <body>
   <%= render("member_header.html", conn: @conn)%>
   <div class="container-fluid px-0">
-    
     <div class="row g-0">
-      <div class="col-12 col-lg-2 d-none d-lg-block"  id="profile_card">
+      <div class="col-12 col-lg-2 d-none d-lg-block" id="profile_card">
         <%= render("member_sidebar.html", conn: @conn) %>
-
-
       </div>
       <div class="col-12 col-lg-10 p-4">
-          
-             
-           <%= @inner_content %>
-        
+        <%= @inner_content %>
       </div>
     </div>
   </div>
@@ -81,9 +77,12 @@
       </div>
     </div>
   </div>
-      <div class="wrapper-ring">
-      <div class="lds-ripple"><div></div><div></div></div>
+  <div class="wrapper-ring">
+    <div class="lds-ripple">
+      <div></div>
+      <div></div>
     </div>
+  </div>
   <script type="text/javascript" src="/js/routes.js"></script>
 </body>
 

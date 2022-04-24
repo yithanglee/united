@@ -5,7 +5,7 @@ defmodule United.Settings.Publisher do
   schema "publishers" do
     field :bio, :binary
     field :name, :string
-
+    has_many(:book, United.Settings.Book)
     timestamps()
   end
 

@@ -2143,6 +2143,14 @@ defmodule United.Settings do
     )
   end
 
+  def all_outstanding_loans() do
+    Repo.all(
+      from l in Loan,
+        where: l.has_return == ^false,
+        preload: [:book]
+    )
+  end
+
   def member_outstanding_loans(member_id) do
     Repo.all(
       from l in Loan,
