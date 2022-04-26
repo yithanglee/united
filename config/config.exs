@@ -57,3 +57,38 @@ config :ex_aws,
   pat: "44675ea568c8d8605fe7af0bf7ce66de28f751f25cc62b87fff970080f31b31f"
 
 config :ex_aws, :s3, host: "ap-south-1.linodeobjects.com"
+
+config :joken,
+  rs256: [
+    signer_alg: "RS256",
+    key_pem: """
+    -----BEGIN PRIVATE KEY-----
+    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDBzi1rnk3SdUsy
+    VsFUPrWsecb1NYC0ywykZ6O/O+CZGJ5/T4xyyJXlenzXfRLteQWN1SOd3w/RlUV+
+    H6cN9jMM2BngWbBXDJm1jiWhExyvL67Nvh0+NN3ODzYx+7nVmICRI1NeXpLe4zV8
+    RGyUS6b+96197ddjV7sPX+bNhN2rVsPGNAfra6kM2XwCau1ggyS+s/3diZ6x1GJT
+    eM9Fv5oSXgKerGRCwe5MTRqtOGk4XIiuIHS3K2biTKCk/fGiU6uc/Re4e/mXUDtH
+    DLMIuYD9sHa24lNBWi1Ow1Vpdlk4h/oWBL38J3xSzrMHRc0o7YwQTAJpX68eP6v+
+    7wOnsTxbAgMBAAECggEAFh5JOcCJ4iyHxfl3u/0iL8qAJekSxM9tpG+9lOwpAF/6
+    as4x2cHBtbxqdg9ssxR+SUcbdv+HpyQxl6jWIHZKMjuRjHS/9tdVzY4pBj6PpgC7
+    oviBDuHqtIMw7LhtZ46tkaLl9120xmJI7uNCPxR5PR0YPEiCLfDLxP/tb+QrhkvA
+    I9soofcQiHRK7C8au9bsPza6qLfryQPPDEi8WG3FTLLZfxMGf8DKDRn5UmDf9Yaz
+    Cic0uViwqZM4auK/39CL2jDXoJMoPeBuol3sVn4Xe0waKb75xzf01+/XUMfkeJKF
+    DJ7BhK+7Xy0ITbe0Qs0lrozWyOmyyzHWLE+pPTCc4QKBgQDz59N9V8x3icXsACI2
+    y5iuqACKzt/zhqQLQ4L0KuAWPIpMYfD1lOFXjLWD3NmGQVhv3YhGZa48W3LmrRkd
+    YBDpZpPyW0HYA/KbHIzZyhujXOPX3N+59mAPStAi8dNCh3NSyT5f0RvwoWw4UFh+
+    nqNT2bvL7VW+MdxPNqlWgEqCewKBgQDLal85VbuecD2QKer39PxBnTsGyEW+PDsI
+    qZhcVw6e12EUT/vpzQfwelms4NO5wlXc2rea/KS3CUJKMmHD9vJ9qkMXhbDNUzOT
+    2ekFVOr609Qm23onCXENtcCZ5ZV1LR6GGFQupWXMy6yZL18CXjnXtCQc5Cy5xTpl
+    ukMOaip3oQKBgCNqSf8tPHcu/hoietVSAr15j3qYR1Ro/HDWQLGLeDZCXCJzJjXC
+    hGXd/I1FCCDCZED5/cubAA2riaeNAtSNGmeJiXnrXkgrapKzNpB5FEJIPp0daS7r
+    Y09VIZuxWWeTm18t8WygRFpQVhJnODJKfpSyTN5ze7u+Kasm2LfCsQ75AoGBAKoO
+    Op+PKfPx97W/JX24JO+hx8gKxCue5OeACS0hZsqqWrGFkJ/MVdfYIYIizz6b1fZ2
+    L0r17apLpkyrRAp1OBKQtdhDXyS4awUvBtz7OhsJ3nHByKQ8A3SnvuWqBsHYP41x
+    Z2c7xRhqKdhCvxYWuhq3sf0pUK7Z0NFc31R8sxYhAoGAdcpbvbFbZI1kffpvaRAF
+    v5WazadPVynTeDrkwCb+XZUk484mB0na2woyTkvg1IMk0sIF0w5Gf+ANmMq/d0lm
+    SUO2vAYE+OxL8cPpN0sBfcfIJAJZSKYyhgwKvmqkD2zoPlE7J/gBeuM84SK4LzTP
+    TGf1XjP/ptCPlSQg+WeBwk8=
+    -----END PRIVATE KEY-----
+    """
+  ]

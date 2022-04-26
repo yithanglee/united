@@ -16,7 +16,6 @@
     </span>
     <span class="ps-2"> Dashboard</span>
   </a>
-
   <a href="#" class="list-group-item list-group-item-action">
     <span class="badge bg-primary rounded-pill">
       <i class="fa fa-sm fa-wrench"></i>
@@ -36,12 +35,18 @@
 <script type="text/javascript">
 $(document).ready(() => {
 
-    var pdata = App.api("get_profile", { token: window.userToken })
+  var pdata = App.api("get_profile", { token: window.userToken })
+  if (pdata.status == "expired") {
+    App.notify("Expired!", { style: "danger" })
+    setTimeout(() => {
 
-  $("#profile_pic").attr('style',`background-size: cover; background-image: url('`+pdata.image_url+`'); height: 100px;width: 100px`);
-  $("#user_initial").hide();
-  $("#cur_user").html(pdata.full_name)
+      window.location = "/admin/logout"
+    }, 2000)
+  } else {
+    $("#profile_pic").attr('style', `background-size: cover; background-image: url('` + pdata.image_url + `'); height: 100px;width: 100px`);
+    $("#user_initial").hide();
+    $("#cur_user").html(pdata.full_name)
+  }
+
 })
-
-
 </script>

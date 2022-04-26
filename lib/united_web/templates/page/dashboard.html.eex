@@ -35,6 +35,10 @@ function uploadPage() {
     content = App.html('upload.html')
   $("#content").html(content)
 }
+function scanPage() {
+    content = App.html('scan.html')
+  $("#content").html(content)
+}
 
 function dashboardInit() {
   console.log("init is working")

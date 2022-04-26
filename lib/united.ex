@@ -6,6 +6,112 @@ defmodule United do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
+  import Mogrify
+
+  def ensure_gtoken_kv_created() do
+    if Process.whereis(:gtoken_kv) == nil do
+      {:ok, pid} = Agent.start_link(fn -> %{} end)
+      Process.register(pid, :gtoken_kv)
+
+      IO.inspect("gtoken_kv kv created")
+    else
+      IO.inspect("gtoken_kv kv exist")
+    end
+  end
+
+  def inspect_image(b64_image) do
+    ensure_gtoken_kv_created()
+    pid = Process.whereis(:gtoken_kv)
+
+    token = Agent.get(pid, fn map -> map["token"] end)
+
+    headers = [
+      {"content-type", "application/json"},
+      {"Authorization", "Bearer #{token}"}
+    ]
+
+    url = "https://vision.googleapis.com/v1/images:annotate"
+
+    body =
+      %{
+        requests: [
+          %{
+            image: %{content: b64_image},
+            features: [%{type: "TEXT_DETECTION"}]
+          }
+        ]
+      }
+      |> Jason.encode!()
+
+    case HTTPoison.post(url, body, headers) do
+      {:ok, resp} ->
+        d =
+          resp.body
+          |> Jason.decode!()
+          |> IO.inspect()
+
+        d2 =
+          d
+          |> Map.get("responses")
+
+        if d2 != nil do
+          d3 =
+            d2
+            |> List.first()
+            |> Map.get("fullTextAnnotation")
+            |> Map.get("text")
+
+          UnitedWeb.Endpoint.broadcast("user:lobby", "decoded_image", %{
+            data: d3,
+            b64_image: b64_image
+          })
+        else
+          token = get_gtoken()
+          Agent.update(pid, fn map -> Map.put(map, "token", token) end)
+          inspect_image(b64_image)
+        end
+
+      {:error, reason} ->
+        IO.inspect(reason)
+
+        UnitedWeb.Endpoint.broadcast("user:lobby", "decoded_image", %{
+          data: "",
+          b64_image: b64_image
+        })
+    end
+  end
+
+  def get_gtoken() do
+    filename = "assetmanagement-lh-724d2fa50035.json"
+    path = Application.app_dir(:united)
+    gdata = File.read!("#{path}/priv/static/#{filename}") |> Jason.decode!()
+
+    {:ok, c3} =
+      Joken.Signer.sign(
+        %{
+          iss: gdata["client_email"],
+          scope: "https://www.googleapis.com/auth/cloud-vision",
+          aud: "https://oauth2.googleapis.com/token",
+          exp: DateTime.utc_now() |> Timex.shift(hours: 1) |> DateTime.to_unix(),
+          iat: DateTime.utc_now() |> DateTime.to_unix()
+        },
+        Joken.Signer.parse_config(:rs256)
+      )
+      |> IO.inspect()
+
+    body =
+      "grant_type=#{URI.encode_www_form("urn:ietf:params:oauth:grant-type:jwt-bearer")}&assertion=#{
+        c3
+      }"
+
+    {:ok, resp} =
+      HTTPoison.post("https://oauth2.googleapis.com/token", body, [
+        {"content-type", "application/x-www-form-urlencoded"}
+      ])
+
+    a = resp.body |> Jason.decode!()
+    a["access_token"] |> String.replace("..", "")
+  end
 
   def eval_codes(singular, plural) do
     struct =

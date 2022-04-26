@@ -59,7 +59,9 @@ defmodule United.MixProject do
       {:blue_potion, "~> 0.1.2",
        override: true, git: "https://github.com/yithanglee/blue_potion"},
       {:csv, "~> 2.0.0"},
-      {:xlsxir, "~> 1.6.4"}
+      {:xlsxir, "~> 1.6.4"},
+      {:joken, "~> 2.4.1"},
+      {:mogrify, "~> 0.9.1"}
     ]
   end
 

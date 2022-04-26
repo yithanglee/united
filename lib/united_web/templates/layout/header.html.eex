@@ -29,6 +29,10 @@
         <li class="nav-item">
           <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('uploadPage();', 'Upload')">Upload</a>
         </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('scanPage();', 'Scan')">Scan</a>
+        </li>
         <li class="nav-item">
           <a class="nav-link" href="javascript:void(0);">Settings</a>
         </li>

@@ -5,6 +5,7 @@ defmodule United.Settings.Book do
   schema "books" do
     # field :author_id, :integer
     # field :publisher_id, :integer
+    field :price, :float
     field :description, :binary
     field :title, :string
     field :isbn, :string
@@ -18,7 +19,7 @@ defmodule United.Settings.Book do
   @doc false
   def changeset(book, attrs) do
     book
-    |> cast(attrs, [:call_number, :isbn, :title, :description])
+    |> cast(attrs, [:call_number, :price, :isbn, :title, :description])
     |> cast_assoc(:author)
     |> cast_assoc(:publisher)
     |> cast_assoc(:book_images)
@@ -27,7 +28,7 @@ defmodule United.Settings.Book do
 
   def update_changeset(book, attrs) do
     book
-    |> cast(attrs, [:call_number, :isbn, :title, :author_id, :publisher_id, :description])
+    |> cast(attrs, [:call_number, :isbn, :price, :title, :author_id, :publisher_id, :description])
     |> validate_required([:title])
   end
 end

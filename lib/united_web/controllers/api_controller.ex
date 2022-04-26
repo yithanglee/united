@@ -1,5 +1,6 @@
 defmodule UnitedWeb.ApiController do
   use UnitedWeb, :controller
+  import Mogrify
 
   @app_secret "2e210fa67f156f26d8d9adb2f5524b9e"
   @app_id "716495772618929"
@@ -144,6 +145,21 @@ defmodule UnitedWeb.ApiController do
   def webhook_post(conn, params) do
     final =
       case params["scope"] do
+        "scan_image" ->
+          image =
+            open(params["image"].path)
+            |> resize("1200x1200")
+            |> save
+            |> IO.inspect()
+
+          a =
+            File.read!(image.path)
+            |> Base.encode64()
+            |> IO.inspect()
+
+          Elixir.Task.start_link(United, :inspect_image, [a])
+          %{status: "ok"}
+
         "strong_search" ->
           q = params["query"]
 
@@ -367,12 +383,16 @@ defmodule UnitedWeb.ApiController do
           |> Map.put(:crypted_password, "")
 
         "get_profile" ->
-          {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
+          case Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"]) do
+            {:ok, map} ->
+              United.Settings.get_user!(map.id)
+              |> BluePotion.s_to_map()
+              |> Map.delete(:id)
+              |> Map.put(:crypted_password, "")
 
-          United.Settings.get_user!(map.id)
-          |> BluePotion.s_to_map()
-          |> Map.delete(:id)
-          |> Map.put(:crypted_password, "")
+            {:error, _expired} ->
+              %{status: "expired"}
+          end
 
         "return_book" ->
           United.Settings.return_book(params["loan_id"])
@@ -583,7 +603,55 @@ defmodule UnitedWeb.ApiController do
     end
   end
 
-  require IEx
+  def append_params(params) do
+    parent_id = Map.get(params, "parent_id")
+
+    params =
+      if parent_id != nil do
+        params
+        |> Map.put(
+          "parent_id",
+          United.Settings.decode_token(parent_id).id
+        )
+      else
+        params
+      end
+
+    password = Map.get(params, "password")
+
+    params =
+      if password != nil do
+        crypted_password = :crypto.hash(:sha512, password) |> Base.encode16() |> String.downcase()
+
+        params
+        |> Map.put(
+          "crypted_password",
+          crypted_password
+        )
+      else
+        params
+      end
+
+    IO.inspect("appended")
+    IO.inspect(params)
+
+    params
+  end
+
+  def decode_token(params) do
+    corporate_account_id = Map.get(params, "corporate_account_id")
+
+    params =
+      if corporate_account_id != nil do
+        params
+        |> Map.put(
+          "corporate_account_id",
+          United.Settings.decode_token(corporate_account_id).id
+        )
+      else
+        params
+      end
+  end
 
   def datatable(conn, params) do
     model = Map.get(params, "model")
@@ -599,16 +667,30 @@ defmodule UnitedWeb.ApiController do
         # its a list [column1, column2]
         columns = additional_search_queries |> String.split(",")
 
-        for item <- columns do
-          ss = params["search"]["value"]
+        for {item, index} <- columns |> Enum.with_index() do
+          if item |> String.contains?("!=") do
+            [i, val] = item |> String.split("!=")
 
-          """
-          |> or_where([a], ilike(a.#{item}, ^"%#{ss}%"))
-          """
+            """
+            |> where([a], a.#{i} != "#{val}") 
+            """
+          else
+            ss = params["search"]["value"]
+
+            if index > 0 do
+              """
+              |> or_where([a], ilike(a.#{item}, ^"%#{ss}%"))
+              """
+            else
+              """
+              |> where([a], ilike(a.#{item}, ^"%#{ss}%"))
+              """
+            end
+          end
         end
         |> Enum.join("")
-        |> IO.inspect()
       end
+      |> IO.inspect()
 
     preloads =
       if preloads == nil do
