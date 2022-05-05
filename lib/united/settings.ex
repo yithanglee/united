@@ -2026,6 +2026,10 @@ defmodule United.Settings do
   end
 
   def create_book_inventory(params \\ %{}) do
+    # rewrite the code here
+
+    IO.inspect(params)
+
     if "update_assoc" in Map.keys(params) do
       assocs = Map.keys(params["update_assoc"])
       cols = BluePotion.test_module("BookInventory") |> Map.keys()
@@ -2039,6 +2043,20 @@ defmodule United.Settings do
         |> Multi.run(:book_inventory, fn _repo, %{} ->
           Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
           |> Repo.insert()
+        end)
+        |> Multi.run(:author, fn _repo, %{book_inventory: book_inventory} ->
+          author = Repo.get_by(Author, name: params["author"]["name"])
+
+          author =
+            if author == nil do
+              {:ok, author} = create_author(%{name: params["author"]["name"]})
+              author
+            else
+              author
+            end
+
+          Book.update_changeset(book_inventory.book, %{author_id: author.id})
+          |> Repo.update()
         end)
         |> Multi.run(:publisher, fn _repo, %{book_inventory: book_inventory} ->
           publisher = Repo.get_by(Publisher, name: params["publisher"]["name"])
@@ -2165,6 +2183,134 @@ defmodule United.Settings do
     l = get_loan!(loan_id)
 
     update_loan(l, %{has_return: true})
+  end
+
+  require IEx
+
+  def setup_book(
+        %{
+          "AUTHOR" => author_name,
+          "BARCODE" => barcode,
+          "CALL NO" => _empty2,
+          "DESCRIPTION" => description,
+          "ISBN" => isbn,
+          "PRICE" => price,
+          "PUBLISHER" => publisher_name,
+          "TITLE" => title
+        } = map_d,
+        bu
+      ) do
+    unless map_d |> Map.values() |> Enum.uniq() |> List.first() == "" do
+      a = Repo.all(from a in Author, where: a.name == ^author_name) |> List.first()
+
+      author =
+        if a == nil do
+          {:ok, a} = create_author(%{name: author_name})
+          a
+        else
+          a
+        end
+
+      p = Repo.all(from p in Publisher, where: p.name == ^publisher_name) |> List.first()
+
+      publisher =
+        if p == nil do
+          case create_publisher(%{name: publisher_name}) do
+            {:ok, p} ->
+              p
+
+            _ ->
+              nil
+          end
+        else
+          p
+        end
+
+      b = Repo.get_by(Book, title: title, isbn: "#{isbn}")
+
+      book =
+        if b == nil do
+          b_cg =
+            Ecto.Changeset.cast(
+              %Book{},
+              %{
+                description: description,
+                isbn: "#{isbn}",
+                call_number: barcode,
+                price: price |> Float.parse() |> elem(0),
+                title: title,
+                author_id: author.id,
+                publisher_id: if(publisher != nil, do: publisher.id)
+              },
+              [:description, :title, :author_id, :publisher_id, :call_number, :price, :isbn]
+            )
+            |> Repo.insert()
+            |> IO.inspect()
+
+          case b_cg do
+            {:ok, b} ->
+              res =
+                Ecto.Changeset.cast(
+                  %BookInventory{},
+                  %{
+                    book_id: b.id,
+                    code: barcode,
+                    book_upload_id: bu.id
+                  },
+                  [:book_id, :code, :book_upload_id]
+                )
+                |> Repo.insert()
+
+              case res do
+                {:ok, bi} ->
+                  {:ok, "book, inventory successful"}
+
+                {:error, bi_cg} ->
+                  {reason, message} = bi_cg.errors |> hd()
+                  {proper_message, message_list} = message
+                  final_reason = Atom.to_string(reason) <> " " <> proper_message
+                  {:error, "inventory error - #{final_reason}", map_d}
+              end
+
+            {:error, b_cg} ->
+              {reason, message} = b_cg.errors |> hd()
+              {proper_message, message_list} = message
+              final_reason = Atom.to_string(reason) <> " " <> proper_message
+              {:error, "book error - #{final_reason}", map_d}
+          end
+        else
+          b
+
+          bi = Repo.get_by(BookInventory, book_id: b.id, code: barcode)
+
+          if bi == nil do
+            res =
+              Ecto.Changeset.cast(
+                %BookInventory{},
+                %{
+                  book_id: b.id,
+                  code: barcode,
+                  book_upload_id: bu.id
+                },
+                [:book_id, :code, :book_upload_id]
+              )
+              |> Repo.insert()
+
+            case res do
+              {:ok, bi} ->
+                {:ok, "book, inventory successful"}
+
+              {:error, bi_cg} ->
+                {reason, message} = bi_cg.errors |> hd()
+                {proper_message, message_list} = message
+                final_reason = Atom.to_string(reason) <> " " <> proper_message
+                {:error, "inventory error  - #{final_reason}", map_d}
+            end
+          else
+            {:error, "book inventory already exist", map_d}
+          end
+        end
+    end
   end
 
   def setup_book(
@@ -2316,23 +2462,14 @@ defmodule United.Settings do
         m =
           map_d
           |> Map.take([
-            "TITLE",
-            "BARCODE",
-            "ISBN",
             "AUTHOR",
-            "PUBLISHER",
-            "DESCRIPTION",
+            "BARCODE",
             "CALL NO",
-            "CATEGORY NAME",
-            "COAUTHOR",
-            "TRANSLATOR",
-            "ILLUSTRATOR",
-            "SERIES",
-            "VOLUME",
-            "PURCHASE DATE",
-            "PURHCHASE INVOICE",
-            "BOOK NO",
-            "PRICE"
+            "DESCRIPTION",
+            "ISBN",
+            "PRICE",
+            "PUBLISHER",
+            "TITLE"
           ])
           |> IO.inspect()
 
