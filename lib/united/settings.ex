@@ -1872,6 +1872,50 @@ defmodule United.Settings do
     Member.changeset(model, params) |> Repo.update()
   end
 
+  def lazy_get_member(email, name, uid) do
+    member = Repo.get_by(Member, email: email, crypted_password: uid)
+
+    assign_month_year = fn member ->
+      Map.put(member, :year, member.inserted_at.year)
+      |> Map.put(:month, member.inserted_at.month)
+    end
+
+    default_group =
+      United.Settings.list_groups() |> Enum.filter(&(&1.name == "Default")) |> List.first()
+
+    if member == nil do
+      tcount =
+        United.Settings.list_members()
+        |> Enum.map(&(&1 |> assign_month_year.()))
+        |> Enum.filter(&(&1.year == Date.utc_today().year))
+        |> Enum.filter(&(&1.month == Date.utc_today().month))
+        |> Enum.count()
+
+      idx =
+        (1000 + tcount + 1)
+        |> Integer.to_string()
+        |> String.split("")
+        |> Enum.reject(&(&1 == ""))
+        |> Enum.reverse()
+        |> Enum.take(3)
+        |> Enum.reverse()
+        |> Enum.join("")
+
+      create_member(%{
+        group_id: default_group.id,
+        phone: "n/a",
+        ic: "n/a",
+        code: "#{Date.utc_today().year}#{Date.utc_today().month}-#{idx}",
+        name: name,
+        email: email,
+        psid: uid,
+        crypted_password: uid
+      })
+    else
+      update_member(member, %{name: name})
+    end
+  end
+
   def delete_member(%Member{} = model) do
     Repo.delete(model)
   end
@@ -1983,7 +2027,7 @@ defmodule United.Settings do
         on: c.id == bi.book_category_id,
         where: ilike(bi.code, ^"%#{query}%"),
         preload: [:author, :publisher, :book_category, :book, :book_images],
-        limit: 100
+        limit: 10
       )
       |> or_where([bi, b, a, p, c], ilike(b.isbn, ^"%#{query}%"))
       |> or_where([bi, b, a, p, c], ilike(b.call_number, ^"%#{query}%"))
@@ -2071,6 +2115,41 @@ defmodule United.Settings do
 
           Book.update_changeset(book_inventory.book, %{publisher_id: publisher.id})
           |> Repo.update()
+        end)
+        |> Multi.run(:book, fn _repo, %{book_inventory: book_inventory} ->
+          # Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
+          # |> Repo.update()
+
+          if "book_image.img_url" in Map.keys(params) do
+            filename =
+              params["book_image.img_url"]
+              |> String.replace("/images/uploads", "")
+
+            United.s3_large_upload(filename)
+
+            Repo.delete_all(
+              from i in BookImage,
+                where: i.book_id == ^book_inventory.book.id and is_nil(i.group)
+            )
+
+            Repo.delete_all(
+              from i in BookImage,
+                where: i.book_id == ^book_inventory.book.id and i.group == ^"cover"
+            )
+
+            Ecto.Changeset.cast(
+              %BookImage{},
+              %{
+                group: "cover",
+                book_id: book_inventory.book.id,
+                img_url: "https://ap-south-1.linodeobjects.com/damien-bucket#{filename}"
+              },
+              [:book_id, :img_url, :group]
+            )
+            |> Repo.insert()
+          else
+            {:ok, nil}
+          end
         end)
         |> Repo.transaction()
 
@@ -2521,6 +2600,26 @@ defmodule United.Settings do
     )
   end
 
+  def decode_token(token) do
+    case Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", token) do
+      {:ok, map} ->
+        map
+
+      {:error, _reason} ->
+        nil
+    end
+  end
+
+  def decode_member_token2(token) do
+    case Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", token) do
+      {:ok, map} ->
+        map
+
+      {:error, _reason} ->
+        nil
+    end
+  end
+
   def decode_member_token(token) do
     case Phoenix.Token.verify(UnitedWeb.Endpoint, "member_signature", token) do
       {:ok, map} ->
@@ -2556,6 +2655,147 @@ defmodule United.Settings do
       a |> BluePotion.s_to_map()
     else
       nil
+    end
+  end
+
+  def repopulate_categories() do
+    # go through each book_inventory, 
+    # assign the category
+    # import Ecto.Query
+    # United.Repo.delete_all(from bc in United.Settings.BookCategory, where: is_nil(bc.name))
+
+    if Process.whereis(:bc_kv) == nil do
+      {:ok, pid} = Agent.start_link(fn -> %{} end)
+      Process.register(pid, :bc_kv)
+
+      IO.inspect("bc_kv kv created")
+    else
+      IO.inspect("bc_kv kv exist")
+    end
+
+    bc_kv = Agent.get(Process.whereis(:bc_kv), fn map -> map end)
+
+    # if bc_kv == %{} do
+    # else
+    #   bc_kv
+    # end
+    bcs = Repo.all(BookCategory)
+
+    kv =
+      for bci <- bcs do
+        Agent.update(Process.whereis(:bc_kv), fn map -> Map.put(map, bci.code, bci) end)
+      end
+
+    bi_list = Repo.all(from(bi in BookInventory))
+
+    final_bi =
+      for bi <- bi_list do
+        # check the code, and create the category
+        prefix =
+          bi.code |> String.split("") |> Enum.reject(&(&1 == "")) |> Enum.take(2) |> Enum.join("")
+
+        # book_code = Repo.get_by(BookCategory, code: prefix)
+        book_code = Agent.get(Process.whereis(:bc_kv), fn map -> map |> Map.get(prefix) end)
+
+        bcategory =
+          if book_code == nil do
+            {:ok, bci} = create_book_category(%{code: prefix})
+
+            Agent.update(Process.whereis(:bc_kv), fn map -> Map.put(map, bci.code, bci) end)
+            bci
+          else
+            book_code
+          end
+
+        update_book_inventory(bi, %{book_category_id: bcategory.id})
+
+        if bi.book_category_id == nil do
+        else
+          #
+          nil
+        end
+
+        bcategory
+      end
+      |> Enum.group_by(& &1)
+
+    keys =
+      Map.keys(final_bi)
+      |> IO.inspect()
+
+    for key <- keys do
+      update_book_category(key, %{book_count: Enum.count(final_bi[key])})
+    end
+  end
+
+  alias United.Settings.BookTag
+
+  def list_book_tags() do
+    Repo.all(BookTag)
+  end
+
+  def get_book_tag!(id) do
+    Repo.get!(BookTag, id)
+  end
+
+  def create_book_tag(params \\ %{}) do
+    BookTag.changeset(%BookTag{}, params) |> Repo.insert()
+  end
+
+  def update_book_tag(model, params) do
+    BookTag.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_book_tag(%BookTag{} = model) do
+    Repo.delete(model)
+  end
+
+  def get_tag_books(params) do
+    Repo.all(
+      from bi in BookInventory,
+        left_join: bt in BookTag,
+        on: bt.book_inventory_id == bi.id,
+        left_join: t in Tag,
+        on: t.id == bt.tag_id,
+        where: t.name == ^params["tag"],
+        preload: [:book, :book_images, :author, :publisher, :book_category]
+    )
+  end
+
+  def book_data(params) do
+    Repo.all(
+      from bi in BookInventory,
+        left_join: bt in BookTag,
+        on: bt.book_inventory_id == bi.id,
+        left_join: t in Tag,
+        on: t.id == bt.tag_id,
+        where: bi.id == ^params["bi"],
+        preload: [:book, :book_images, :author, :publisher, :book_category]
+    )
+    |> List.first()
+  end
+
+  def remove_bi_to_tag(params) do
+    sample = %{"bi" => "8695", "scope" => "assign_bi_to_tag", "tag" => "New"}
+    bi = get_book_inventory!(params["bi"])
+    tag = Repo.get_by(Tag, name: params["tag"])
+
+    check = Repo.get_by(BookTag, book_inventory_id: bi.id, tag_id: tag.id)
+
+    if check != nil do
+      Repo.delete(check)
+    end
+  end
+
+  def assign_bi_to_tag(params) do
+    sample = %{"bi" => "8695", "scope" => "assign_bi_to_tag", "tag" => "New"}
+    bi = get_book_inventory!(params["bi"])
+    tag = Repo.get_by(Tag, name: params["tag"])
+
+    check = Repo.get_by(BookTag, book_inventory_id: bi.id, tag_id: tag.id)
+
+    if check == nil do
+      create_book_tag(%{book_inventory_id: bi.id, tag_id: tag.id})
     end
   end
 end

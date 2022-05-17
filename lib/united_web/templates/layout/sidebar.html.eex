@@ -4,18 +4,53 @@
       <span style="font-size: 4em;" id="user_initial">U</span>
     </div>
   </div>
-  <div class="d-flex flex-column justify-content-center text-center text-white">
+  <div class="d-flex flex-column justify-content-center text-center ">
     <span class="lead" id="cur_user">Famour User</span>
     <a href="javascript:void(0);" onclick="editProfile()">Edit Profile</a>
   </div>
 </div>
-<div class="list-group">
+<div class="list-group d-lg-block d-none">
   <a href="javascript:void(0);" onclick="setCurrentPage('dashboardInit();', 'Home')" class="list-group-item list-group-item-action">
     <span class="badge bg-primary rounded-pill">
       <i class="fa fa-sm fa-tachometer-alt"></i>
     </span>
     <span class="ps-2"> Dashboard</span>
   </a>
+
+  <a href="javascript:void(0);" onclick="setCurrentPage('listLoans();', 'Loans')" class="list-group-item list-group-item-action">
+    <span class="badge bg-primary rounded-pill">
+      <i class="fa fa-sm fa-history"></i>
+    </span>
+    <span class="ps-2"> Loans</span>
+  </a>
+  <a href="javascript:void(0);" onclick="setCurrentPage('listBooks();', 'Books')" class="list-group-item list-group-item-action">
+    <span class="badge bg-primary rounded-pill">
+      <i class="fa fa-sm fa-book"></i>
+    </span>
+    <span class="ps-2"> Books</span>
+  </a>
+
+  <a href="javascript:void(0);" onclick="setCurrentPage('listMembers();', 'Members')" class="list-group-item list-group-item-action">
+    <span class="badge bg-primary rounded-pill">
+      <i class="fa fa-sm fa-users"></i>
+    </span>
+    <span class="ps-2"> Members</span>
+  </a>
+
+  <a href="javascript:void(0);" onclick="setCurrentPage('uploadPage();', 'Upload')" class="list-group-item list-group-item-action">
+    <span class="badge bg-primary rounded-pill">
+      <i class="fa fa-sm fa-file-upload"></i>
+    </span>
+    <span class="ps-2"> Upload</span>
+  </a>
+  
+  <a href="javascript:void(0);" onclick="setCurrentPage('scanPage();', 'Scan')" class="list-group-item list-group-item-action">
+    <span class="badge bg-primary rounded-pill">
+      <i class="fa fa-sm fa-camera"></i>
+    </span>
+    <span class="ps-2"> Scan</span>
+  </a>
+  
   <a href="#" class="list-group-item list-group-item-action">
     <span class="badge bg-primary rounded-pill">
       <i class="fa fa-sm fa-wrench"></i>

@@ -1,67 +1,305 @@
-<div id="main-content">
-	
+<style type="text/css">
+.sres {
+  cursor: pointer;
+}
+</style>
+<div class="row gx-0">
+  <div aria-label="mainbar" class="col-12 ">
+    <div class="row gx-0">
+      <div class="col-12 col-lg-6 offset-lg-3">
+        <nav class="px-2 pt-2 d-flex justify-content-between align-items-center">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="px-0 pe-2 btn d-block  " onclick="toggleSidebar();">
+              <i class=" fa fa-list"></i>
+              
+            </div>
+            <div class="btn p-0" onclick='repeatAction("landing.html")'>
+              <span class="fs-3">ARK Library</span>
+            </div>
+          </div>
+          <div class="btn d-block " onclick='
+          if (localStorage.getItem("pkey") != null) {
+            repeatAction("account.html")
+          } else {
+            repeatAction("register.html")
+          }
+          '>
+            <i class=" fa fa-user pe-1"></i>
+            <span id="ulg">Login</span>
+          </div>
+        </nav>
+        <nav>
+          <div>
+            <form id="searchz" class="my-2 mx-lg-0 mx-2 position-relative d-flex align-items-center">
+              <div class="btn end-0 position-absolute">
+                <i class="fa fa-search ">
+                </i>
+              </div>
+              <input autocomplete="off" type="text" list="browsers" class=" form-control" placeholder="Search by title, ISBN, barcode" name="query">
+              <div class="d-none position-absolute bg-white w-100" id="autolist" style="top: 40px; z-index: 1000;">
+              </div>
+            </form>
+          </div>
+        </nav>
+      </div>
+    </div>
+    <section class="mt-4 row gx-0 bg-primary d-none d-lg-block">
+      <div class="col-12">
+        <div class="d-flex justify-content-center gap-4 align-items-center" id="menus">
+          <div class="btn text-center text-white" onclick='repeatAction("landing.html")'>
+            Home
+          </div>
+          <div class="btn text-center text-white" onclick='repeatAction("public_books.html")'>
+            Books
+          </div>
+          <div class="btn text-center text-white" onclick='repeatAction("public_search.html")'>
+            Search
+          </div>
+        
+          <div id="aax" class="btn  text-center text-white">
+            <a class="text-white" href="/admin/login">Admin </a>
+          </div>
+        </div>
+      </div>
+    </section>
+<div class="row gx-0 py-4 bnn" style='
+  position: relative;                                        
+  height: 200px;
+  overflow: hidden;
+  background: #C04848;
+  background: linear-gradient(rgb(72, 0, 72, 0.8), rgb(192, 72, 72, 0.8)), url("/images/bg.jpg");
+  background: linear-gradient(rgba(217, 199, 217, 0.24), rgba(187, 170, 170, 0.82)), url("/images/home-bg.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-attachment: fixed;
+    transition: height 2s;'>
+    <i 
+    onclick="$('.bnn').addClass('d-none')" 
+    class="fa btn fa-times text-white position-absolute" style="right: 4px;width: 10px;top: 0px;"></i>
+  <div class="col-12 col-lg-6 offset-lg-3">
+    <div class="d-flex justify-content-center align-items-center">
+      <div class="ps-4 d-flex flex-column justify-content-center align-items-center">
+        <div class="fs-1  d-flex flex-column ">
+          <img src="/images/logo.png" style="max-width:  150px; max-height: 64vh;">
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+    <section class="pb-4" id="subcontent">
+    </section>
+  </div>
+  <div aria-label="sidebar" class="d-none position-fixed position-lg-block min-vh-100 col-10 col-lg-2 bg-light end-0" style="z-index: 20;">
+    <div class="btn  d-flex align-items-center gap-2" onclick="toggleSidebar();">
+      <i class=" fa fa-minus"></i>
+      <span class="py-2">Navigation</span>
+    </div>
+    <div class="list-group">
+      <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+        toggleSidebar();
+        repeatAction("landing.html")'>Home </a>
+      <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+        toggleSidebar();
+        repeatAction("public_books.html")'>Books </a>
+      <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+        toggleSidebar();
+        repeatAction("public_search.html")'>Search </a>
+     
+      <a class="list-group-item list-group-item-action" href="/admin/login">Admin </a>
+    </div>
+  </div>
+</div>
+<span id="sign-in-button"></span>
+<div id="recaptcha-container"></div>
+<!--
+                <div class="d-flex flex-column p-2 sres" >
+                  <span>Title 1</span>
+                  <small>RB00123</small>
+                </div>
+                <div class="d-flex flex-column p-2 sres">
+                  <span>Title 2</span>
+                  <small>RB00124</small>
+                </div>
+-->
 <script type="text/javascript">
+var query_string
+var idleTime = 0
+var interval = 1000
+var startTimer = false
+$("input[name='query']").on("focusout", () => {
+  setTimeout(() => {
+    $("input[name='query']").val("")
+    $("#autolist").html("")
+    $("#autolist").addClass("d-none")
 
-	document.addEventListener('keydown', function(event) {
-      if (event.ctrlKey && event.key === '.') {
-          repeatAction()
-      }
-  });
+  }, 1500)
+})
+$("input[name='query']").on("keyup", () => {
+  var s = $("input[name='query']").val()
+  startTimer = true
+  var idleInterval = setInterval(checkNewInput, interval); // 1 second
+})
 
-  function repeatAction() {
-		$.ajax({url: "/html/landing.html", async: false}).done((html) => {
-			$("#main-content").html(html)
-		})
-  }
-  repeatAction()
+function checkNewInput() {
+  var s = $("input[name='query']").val()
+  if (startTimer) {
+    if (query_string == s) {
+      idleTime += 1
+      if (idleTime == 4) {
+        idleTime = 0
+        console.log("search :" + s)
+        if (s != "") {
 
-  window.addEventListener(
-      "popstate",
-      function(event) {
-        console.log(event)
-        console.log(window.history.state)
-
-        if (window.history.state != null) {
-            if (window.history.state.action == "show_blog") {
-              showBlog(window.history.state.id, false)
-            }
-            if (window.history.state.action == "show_home") {
-              showHome()
-            }
-        } else {
-            showHome()
+          hprocessSearchForm("form#searchz")
         }
-
-      },
-      false
-  );
-
-
-function showBlog(id, saveState) {
-  $.ajax({url: "/api/webhook?scope=show_blog&id=" + id}).done((blog) => {
-
-    if (saveState == false) {
-
+        startTimer = false
+      }
     } else {
-
-      window.history.pushState({action: 'show_blog', id: id}, "Show Blog", "/blogs/"+id+"?action=show_blog&id=" + id)
+      query_string = s
     }
-    document.title = blog.title
-    $(".home").hide()
-    $("#reading .content_header").html(`<div class="fw-bold" style="font-size: 120%;">`+blog.title+`</div><small class="text-secondary">`+blog.author+`</small>`)
-    $("#reading .content_body").html(blog.body)
-    $("#blog_featured_image").attr("src", blog.featured_image)
-    $("#reading").show()
+  }
+}
+
+function hprocessSearchForm(dom) {
+
+  $("#autolist").removeClass("d-none")
+  var formData = new FormData($(dom)[0])
+  formData.append("scope", "strong_search")
+  $.ajax({
+      url: "/api/webhook",
+      dataType: "json",
+      headers: {
+        "Authorization": "Basic " + window.userToken
+      },
+      method: "POST",
+      enctype: "multipart/form-data",
+      processData: false, // tell jQuery not to process the data
+      contentType: false,
+      data: formData
+    })
+    .done(function(j) {
+      var count = j.length
+      // App.notify("Searched! Found: " + count, {
+      //   placement: {
+      //     from: "bottom",
+      //     align: "center"
+      //   },
+
+      //   type: "success"
+      // });
+      $("#autolist").html("")
+      j.forEach((bookInventory, i) => {
+
+        var images_list = []
+        bookInventory.book_images.forEach((images, i) => {
+          images_list.push(`<div style="width: 100px; height: 150px; background-size: cover; background-position: center; background-image: url('` + images.img_url + `')"></div>`)
+        })
+        var aut = "No Author"
+
+        if (bookInventory.author != null) {
+          aut = bookInventory.author.name
+        }
+        var card = `
+                <div class="d-flex flex-column p-2 sres" 
+                   onclick="
+                    window.bookData = ` + bookInventory.id + `
+                  repeatAction('book_detail.html');"
+                  >
+                  <span>` + bookInventory.book.title + `</span>
+                  <small>` + bookInventory.book.isbn + `</small>
+                  <small class="text-muted">` + aut + `</small>
+                  <small>` + bookInventory.code + `</small>
+                </div>
+
+                  `
+        $("#autolist").append(card)
+      })
+
+    }).fail(() => {
+      App.notify("Not found!", {
+        type: "danger"
+      });
+
+
+
+    })
+
+
+
+}
+
+
+$(document).on("click", ".sres", () => {
+  // alert("!")
+  $("input[name='query']").val("")
+  $("#autolist").html("")
+  $("#autolist").addClass("d-none")
+})
+var default_page = "landing.html"
+
+
+
+
+function repeatAction(default_page) {
+  var title = default_page.split(".")[0]
+  var stateObj = { fn: `repeatAction('` + default_page + `')`, title: title };
+  $("title").html(title)
+  history.pushState(stateObj, title, "?get=" + title);
+  App.show()
+  $.ajax({ url: "/html/" + default_page, async: false }).done((html) => {
+    $("#subcontent").html(html)
+    App.hide()
   })
-
 }
+repeatAction(default_page)
 
-function showHome() {
-    window.history.pushState(null, "Home", "/")
-    document.title = "Home"
-  $(".home").show()
-  $("#reading").hide() 
+
+// nav toggles
+function toggleSidebar(forceClose) {
+  console.log("sidebar")
+  if (forceClose != null) {
+    if (forceClose) {
+      $("div[aria-label='mainbar']").addClass("col-lg-10")
+      $("div[aria-label='sidebar']").addClass("d-none")
+    } else {
+      $("div[aria-label='mainbar']").removeClass("col-lg-10")
+      $("div[aria-label='sidebar']").removeClass("d-none")
+    }
+
+  } else {
+    $("div[aria-label='mainbar']").toggleClass("col-lg-10")
+    $("div[aria-label='sidebar']").toggleClass("d-none")
+  }
 }
+var ui;
+$(document).ready(() => {
+  var firebaseConfig = {
+    apiKey: "AIzaSyC1LklnwigrQdW1RrJGuo0Pj7YTBWrCgTw",
+    authDomain: "kjcmc-library.firebaseapp.com",
+    projectId: "kjcmc-library",
+    storageBucket: "kjcmc-library.appspot.com",
+    messagingSenderId: "169717908484",
+    appId: "1:169717908484:web:4d9c5c2fc96ce2cac9a151"
+  };
+  if (!firebase.apps.length) {
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    firebase.auth().languageCode = "en";
+  } else {
+    firebase.app(); // if already initialized, use that one
+  }
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+    "sign-in-button", {
+      size: "invisible",
+      callback: function(response) {
+        console.log(response);
+      }
+    }
+  );
+  ui = new firebaseui.auth.AuthUI(firebase.auth());
 
+
+
+})
 </script>

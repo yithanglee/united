@@ -11,6 +11,7 @@ defmodule UnitedWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug(United.ApiAuthorization)
   end
 
   pipeline :blank do

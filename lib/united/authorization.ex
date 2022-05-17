@@ -41,3 +41,50 @@ defmodule United.Authorization do
     end
   end
 end
+
+defmodule United.ApiAuthorization do
+  use Phoenix.Controller, namespace: UnitedWeb
+  import Plug.Conn
+  require IEx
+
+  def init(opts) do
+    opts
+  end
+
+  def call(conn, opts) do
+    # IO.inspect(conn)
+
+    if conn.method == "POST" do
+      cond do
+        Plug.Conn.get_req_header(conn, "referer")
+        |> List.first()
+        |> String.contains?("/admin/dashboard") ->
+          conn
+
+        conn.params["scope"] in ["google_signin", "strong_search"] ->
+          conn
+
+        true ->
+          with auth_token <- Plug.Conn.get_req_header(conn, "authorization") |> List.first(),
+               true <- auth_token != nil,
+               token <- auth_token |> String.split("Basic ") |> List.last(),
+               t <- United.Settings.decode_member_token2(token),
+               true <- t != nil do
+            IO.inspect(t)
+
+            IO.inspect("auth")
+            conn
+          else
+            _ ->
+              IO.inspect("not auth")
+
+              conn
+              |> resp(500, Jason.encode!(%{message: "Not authorized."}))
+              |> halt
+          end
+      end
+    else
+      conn
+    end
+  end
+end

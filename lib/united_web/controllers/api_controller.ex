@@ -2,149 +2,40 @@ defmodule UnitedWeb.ApiController do
   use UnitedWeb, :controller
   import Mogrify
 
-  @app_secret "2e210fa67f156f26d8d9adb2f5524b9e"
-  @app_id "716495772618929"
-  @page_access_token "EAAKLpiwCkLEBAJ4IXng9ZAWLL4KkwkNhySnKlqxt04slrJqnqdJtDI4hfqFtIpoqaAyP4NcpzVXBFxFr7GiZAbQ6WvM4SEZCAyIaNb5wJjOKF7cvMKjhILrNNwPv3HSoZCo5cgcAMvC1LH5b16ZAIHaBN5CK8kswr4mdcn2VZCYMEV35rhOBbE"
-  import FacebookHelper
   require Logger
-
-  def fb_webhook(conn, params) do
-    # parameter = Repo.get_by(Settings.Parameter, name: "page_access_token")
-
-    # pat = parameter.cvalue
-
-    challenge = params["hub.challenge"]
-    mode = params["hub.mode"]
-    token = params["hub.verify_token"]
-
-    if mode != nil and token != nil do
-      IO.puts(mode)
-
-      if mode == "subscribe" and token == @page_access_token do
-        IO.puts("WEBHOOK_VERIFIED")
-        send_resp(conn, 200, challenge)
-      else
-        send_resp(conn, 500, [])
-      end
-    else
-      send_resp(conn, 500, [])
-    end
-  end
-
-  require IEx
-
-  def fb_webhook_post(conn, params) do
-    IO.inspect(params)
-
-    sample = %{
-      "entry" => [
-        %{
-          "changes" => [
-            %{
-              "field" => "live_videos",
-              "value" => %{"id" => "4444444444", "status" => "live_stopped"}
-            }
-          ],
-          "id" => "0",
-          "time" => 1_645_812_508
-        }
-      ],
-      "object" => "page"
-    }
-
-    case params["object"] do
-      "page" ->
-        entry_list = params["entry"]
-
-        for %{"changes" => changes} = item <- entry_list do
-          cond do
-            changes |> Enum.map(&(&1["field"] == "live_videos")) ->
-              IO.inspect(List.first(changes)["value"])
-          end
-        end
-
-        for %{"messaging" => messaging2} = item <- entry_list do
-          %{
-            "time" => time,
-            "messaging" => messages,
-            "id" => fb_page_id
-          } = item
-
-          page = United.Repo.get_by(United.Settings.FacebookPage, page_id: fb_page_id)
-
-          if page != nil do
-            set_ps = fn sender_psid ->
-              page_visitor =
-                United.Repo.get_by(United.Settings.PageVisitor,
-                  facebook_page_id: page.id,
-                  psid: sender_psid
-                )
-
-              page_visitor =
-                if page_visitor == nil do
-                  existing_page_commenter =
-                    United.Repo.get_by(United.Settings.PageVisitor,
-                      psid: sender_psid
-                    )
-
-                  {:ok, p} =
-                    if existing_page_commenter == nil do
-                      United.Settings.create_page_visitor(%{
-                        facebook_page_id: page.id,
-                        psid: sender_psid
-                      })
-                    else
-                      United.Settings.update_page_visitor(existing_page_commenter, %{
-                        facebook_page_id: page.id
-                      })
-                    end
-
-                  p
-                else
-                  page_visitor
-                end
-            end
-
-            for %{"message" => content, "sender" => %{"id" => psid}} = message <- messages do
-              Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
-
-              handleMessage(page, set_ps.(psid), content)
-            end
-
-            for %{"postback" => postback, "sender" => %{"id" => psid}} = message <- messages do
-              Logger.info("[FB MESSENGER]: Sender PSID: " <> psid)
-
-              handlePostback(page, set_ps.(psid), postback)
-            end
-          end
-        end
-
-        send_resp(conn, 200, "EVENT_RECEIVED")
-
-      "user" ->
-        entry_list = params["entry"]
-        IO.puts(Jason.encode!(entry_list))
-
-        for item <- entry_list do
-          fb_user_id = item["uid"]
-
-          if Enum.any?(item["changed_fields"], fn x -> x == "live_videos" end) do
-            company_name = params["company_name"]
-
-            # check_user_live_video(fb_user_id, company_name)
-          end
-        end
-
-        send_resp(conn, 200, "EVENT_RECEIVED")
-
-      _ ->
-        send_resp(conn, 500, [])
-    end
-  end
 
   def webhook_post(conn, params) do
     final =
       case params["scope"] do
+        "remove_bi_to_tag" ->
+          United.Settings.remove_bi_to_tag(params)
+          %{status: "ok"}
+
+        "assign_bi_to_tag" ->
+          United.Settings.assign_bi_to_tag(params)
+          %{status: "ok"}
+
+        "google_signin" ->
+          sample = %{
+            "result" => %{
+              "email" => "yithanglee@gmail.com",
+              "name" => "damien lee",
+              "uid" => "c3x50ZfwgubqWHrqqz5VCkmkwtg2"
+            },
+            "scope" => "google_signin"
+          }
+
+          res = params["result"]
+
+          {:ok, member} = United.Settings.lazy_get_member(res["email"], res["name"], res["uid"])
+
+          token =
+            Phoenix.Token.sign(
+              UnitedWeb.Endpoint,
+              "signature",
+              BluePotion.s_to_map(member) |> Map.take([:id, :name])
+            )
+
         "scan_image" ->
           image =
             open(params["image"].path)
@@ -334,18 +225,6 @@ defmodule UnitedWeb.ApiController do
           United.Settings.search_member(params, true)
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
-        "co_failed" ->
-          United.Settings.update_customer_order_by_external_id(params["external_id"], :failed)
-
-        "co_paid" ->
-          United.Settings.update_customer_order_by_external_id(params["external_id"], :paid)
-
-        "finalize_order" ->
-          %{"live_id" => live_id, "order" => order} = params
-          IO.inspect(order)
-          United.Settings.finalize_order(params)
-          %{status: "received"}
-
         _ ->
           %{status: "received"}
       end
@@ -358,6 +237,17 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "book_data" ->
+          United.Settings.book_data(params) |> BluePotion.s_to_map()
+
+        "get_tag_books" ->
+          United.Settings.get_tag_books(params)
+          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+
+        "reassign_categories" ->
+          United.Settings.repopulate_categories()
+          %{status: "ok"}
+
         "show_book" ->
           United.Settings.get_book_by_isbn(params["isbn"])
 
@@ -410,74 +300,6 @@ defmodule UnitedWeb.ApiController do
           United.Settings.member_outstanding_loans(params["member_id"])
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
-        "update_co_address" ->
-          United.Settings.update_co_address(params)
-          %{status: "received"}
-
-        "create_co" ->
-          nparams =
-            %{
-              "account_document_line" => %{
-                "VBi6kc" => %{
-                  "item_id" => "5",
-                  "item_name" => "AYAM STANDARD",
-                  "line_total" => "104.40",
-                  "qty" => "12",
-                  "qty2" => "12",
-                  "remarks" => "Fresh farm chicken 60 days",
-                  "sub_total" => "104.40",
-                  "tax" => "0.00",
-                  "tax_code" => "1",
-                  "unit_cost" => "8.7"
-                }
-              },
-              "account_documents" => %{
-                "account_id" => "880",
-                "created_by" => "4",
-                "date" => "2022-03-21",
-                "document_type" => "customer_order",
-                "id" => "0",
-                "organization_id" => "2",
-                "ref_no" => "<<new>>"
-              },
-              "model" => "account_documents"
-            }
-            |> Map.merge(params)
-
-          {:ok, res} = Accounting.post(Jason.encode!(nparams), params["accounting_accesss_token"])
-
-          resp = res.body |> Poison.decode!()
-
-        "get_accounting_products" ->
-          body = "products"
-          {:ok, res} = Accounting.get(body, params["accounting_accesss_token"])
-
-          resp = res.body |> Poison.decode!()
-
-          IO.inspect(resp)
-          United.Settings.save_sync_items(params["accounting_accesss_token"], resp)
-          resp
-
-        "repopulate_comments" ->
-          lv = United.Settings.get_live_video!(params["live_video_id"])
-          FacebookHelper.get_live_video(lv.live_id, lv.facebook_page.page_access_token, lv)
-
-        "process_into_order" ->
-          FacebookHelper.page_video_to_orders(params["live_id"])
-
-        "get_videos" ->
-          FacebookHelper.page_videos(params["pat"])
-
-        "get_pages" ->
-          FacebookHelper.get_user_manage_pages(params["id"])
-
-        "show_blog" ->
-          United.Settings.get_blog!(params["id"])
-          |> BluePotion.s_to_map()
-
-        "recent_blogs" ->
-          United.Settings.list_recent_blogs() |> Enum.map(&BluePotion.s_to_map(&1))
-
         "gen_inputs" ->
           BluePotion.test_module(params["module"])
 
@@ -489,8 +311,6 @@ defmodule UnitedWeb.ApiController do
     |> put_resp_content_type("application/json")
     |> send_resp(200, Jason.encode!(final))
   end
-
-  require IEx
 
   def form_submission(conn, params) do
     model = Map.get(params, "model")
@@ -657,7 +477,25 @@ defmodule UnitedWeb.ApiController do
     model = Map.get(params, "model")
     preloads = Map.get(params, "preloads")
     additional_search_queries = Map.get(params, "additional_search_queries")
+    additional_join_statements = Map.get(params, "additional_join_statements") |> IO.inspect()
     params = Map.delete(params, "model") |> Map.delete("preloads")
+
+    additional_join_statements =
+      if additional_join_statements == nil do
+        ""
+      else
+        joins = additional_join_statements |> Jason.decode!()
+
+        for join <- joins do
+          key = Map.keys(join) |> List.first()
+          value = join |> Map.get(key)
+          module = Module.concat(["United", "Settings", key])
+
+          "|> join(:left, [a], b in #{module}, on: a.#{value} == b.id)"
+        end
+        |> Enum.join("")
+      end
+      |> IO.inspect()
 
     additional_search_queries =
       if additional_search_queries == nil do
@@ -678,13 +516,31 @@ defmodule UnitedWeb.ApiController do
             ss = params["search"]["value"]
 
             if index > 0 do
-              """
-              |> or_where([a], ilike(a.#{item}, ^"%#{ss}%"))
-              """
+              if item |> String.contains?("b.") do
+                item = item |> String.replace("b.", "")
+
+                # if possible, here need to add back the previous and statements
+
+                """
+                |> or_where([a, b], ilike(b.#{item}, ^"%#{ss}%"))
+                """
+              else
+                """
+                |> or_where([a], ilike(a.#{item}, ^"%#{ss}%"))
+                """
+              end
             else
-              """
-              |> where([a], ilike(a.#{item}, ^"%#{ss}%"))
-              """
+              if item |> String.contains?("b.") do
+                item = item |> String.replace("b.", "")
+
+                """
+                |> where([a, b], ilike(b.#{item}, ^"%#{ss}%"))
+                """
+              else
+                """
+                |> where([a], ilike(a.#{item}, ^"%#{ss}%"))
+                """
+              end
             end
           end
         end
@@ -723,6 +579,7 @@ defmodule UnitedWeb.ApiController do
       BluePotion.post_process_datatable(
         params,
         Module.concat(["United", "Settings", model]),
+        additional_join_statements,
         additional_search_queries,
         preloads
       )

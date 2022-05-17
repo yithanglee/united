@@ -36,7 +36,7 @@ config :blue_potion,
   contexts: ["Settings"],
   project: %{name: "United", alias_name: "united", vsn: "0.1.0"},
   server: %{
-    url: "139.162.29.108",
+    url: "139.162.60.209",
     db_url: "127.0.0.1",
     username: "ubuntu",
     key: System.get_env("SERVER_KEY"),
