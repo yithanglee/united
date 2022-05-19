@@ -182,9 +182,16 @@ defmodule UnitedWeb.ApiController do
           %{status: "ok"}
 
         "process_loan" ->
+          sampple = %{
+            "barcode" => "UU100003",
+            "loan_date" => "2022-05-19",
+            "member_code" => "20225-005",
+            "return_date" => "2022-06-02",
+            "scope" => "process_loan"
+          }
+
           %{
             "barcode" => barcode,
-            "btnradio" => _prcess,
             "loan_date" => loan_date,
             "member_code" => member_code,
             "return_date" => return_date,

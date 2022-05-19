@@ -9,28 +9,29 @@
     <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/all.css") %>"/>
     <script  type="text/javascript" src="/js/bootstrap.min.js"></script>
     <script  type="text/javascript" src="/js/jquery.min.js"></script>
-        <script type="text/javascript" src="/js/bootstrap.notify.js"></script>
-
+    <script  type="text/javascript" src="/js/bootstrap.notify.js"></script>
     <script  type="text/javascript" src="/js/sha.js"></script>
     <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/datatables.min.css") %>"/>
     <script  type="text/javascript" src="/js/datatables.min.js"></script>
     <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/app.css") %>"/>
     <script  type="text/javascript" src="/js/app.js"></script>
-    <link rel="stylesheet" href="/vendor/chartist/chartist.css"/>
-    <script  type="text/javascript" src="/vendor/chartist/chartist.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="/vendor/slick/slick.css" />
-    <link rel="stylesheet" type="text/css" href="/vendor/slick/slick-theme.css" />
-    <script type="text/javascript" src="/vendor/slick/slick.js"></script>
-
-  <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
-  <script src="/js/firebase-app.js"></script>
-
-  <!-- Add Firebase products that you want to use -->
-  <script src="/js/firebase-auth.js"></script>
-  <script src="/vendor/firebase-ui/firebase-ui-auth.js"></script>
-<link type="text/css" rel="stylesheet" href="/vendor/firebase-ui/firebase-ui-auth.css" />
+    <!--
+      <link rel="stylesheet" href="/vendor/chartist/chartist.css"/>
+      <script  type="text/javascript" src="/vendor/chartist/chartist.min.js"></script>
+      <link rel="stylesheet" type="text/css" href="/vendor/slick/slick.css" />
+      <link rel="stylesheet" type="text/css" href="/vendor/slick/slick-theme.css" />
+      <script type="text/javascript" src="/vendor/slick/slick.js"></script>
+    -->
+    <script src="/js/swipe-listener.min.js"></script>
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="/js/firebase-app.js"></script>
+    <!-- Add Firebase products that you want to use -->
+    <script src="/js/firebase-auth.js"></script>
+    <script src="/vendor/firebase-ui/firebase-ui-auth.js"></script>
+    <link type="text/css" rel="stylesheet" href="/vendor/firebase-ui/firebase-ui-auth.css" />
   </head>
-  <body style="overflow-x: hidden;"> 
+  <body style="overflow-x: hidden;" id="swiper-container"> 
+
     <% render("frontend_nav.html", conn: @conn) %>
     <div class="container-fluid gx-0">
       <%= @inner_content %>
@@ -62,6 +63,9 @@
           2022 KJCMC
         </div>
       </footer>
+      <div style="bottom: 2vh;right: 6vw;"  class="toTop btn btn-success position-fixed btn-sm rounded">
+        <i class="fa fa-2x fa-caret-up"></i>
+      </div>
     </div>
     <script type="text/javascript">
     $(document).ready(function(){
@@ -73,14 +77,49 @@
     <% true -> %>
     <% end %>
     })
+    $(".toTop").click(() => {
+      $("div[aria-label='mainbar']")[0].scrollIntoView();
+    })
+
+    $("#swiper-container").on("click", () => {
+      console.log("click")
+    })
+    var container = document.querySelector('#swiper-container');
+    var listener = SwipeListener(container);
+    container.addEventListener('swipe', function (e) {
+      console.log(e.detail);
+      if (e.detail.directions.left) {
+        toggleSidebar()
+      }
+      if (e.detail.directions.right) {
+        toggleSidebar()
+      }
+    });
     </script>
+  <div class="modal" id="mySubModal">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Modal title</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Modal body text goes here.</p>
+        </div>
+        <div class="modal-footer">
+        </div>
+      </div>
+    </div>
+  </div>
     <div class="modal" id="myModal">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Modal title</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
             </button>
           </div>
           <div class="modal-body">
@@ -91,11 +130,11 @@
         </div>
       </div>
     </div>
-<div class="wrapper-ring">
-  <div class="lds-ripple">
-    <div></div>
-    <div></div>
-  </div>
-</div>
+    <div class="wrapper-ring">
+      <div class="lds-ripple">
+        <div></div>
+        <div></div>
+      </div>
+    </div>
   </body>
 </html>

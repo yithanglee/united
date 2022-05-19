@@ -1,3 +1,8 @@
+<script src="/js/qr-scanner.umd.min.js"></script>
+<script type="text/javascript">
+QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
+</script>
+<div id="sound"></div>
 <style type="text/css">
 .sres {
   cursor: pointer;
@@ -11,25 +16,25 @@
           <div class="d-flex justify-content-between align-items-center">
             <div class="px-0 pe-2 btn d-block  " onclick="toggleSidebar();">
               <i class=" fa fa-list"></i>
-              
             </div>
-            <div class="btn p-0" onclick='repeatAction("landing.html")'>
+           
+          </div>
+           <div class="btn p-0" onclick='repeatAction("landing.html")'>
               <span class="fs-3">ARK Library</span>
             </div>
-          </div>
           <div class="btn d-block " onclick='
-          if (localStorage.getItem("pkey") != null) {
-            repeatAction("account.html")
-          } else {
-            repeatAction("register.html")
-          }
+            if (localStorage.getItem("pkey") != null) {
+              repeatAction("account.html")
+            } else {
+              repeatAction("register.html")
+            }
           '>
-            <i class=" fa fa-user pe-1"></i>
-            <span id="ulg">Login</span>
+            <i class=" fa fa-user"></i>
+            <span class="ps-1 d-none" id="ulg">Login</span>
           </div>
         </nav>
         <nav>
-          <div>
+          <div class="pb-2">
             <form id="searchz" class="my-2 mx-lg-0 mx-2 position-relative d-flex align-items-center">
               <div class="btn end-0 position-absolute">
                 <i class="fa fa-search ">
@@ -39,6 +44,9 @@
               <div class="d-none position-absolute bg-white w-100" id="autolist" style="top: 40px; z-index: 1000;">
               </div>
             </form>
+            <a href="javascript:void(0);" onclick="
+            repeatAction('member_loan.html');
+            scan_barcode()" class="ps-3">+ Scan QR-code</a>
           </div>
         </nav>
       </div>
@@ -55,38 +63,39 @@
           <div class="btn text-center text-white" onclick='repeatAction("public_search.html")'>
             Search
           </div>
-        
+          <div class="btn text-center text-white" onclick='repeatAction("member_loan.html")'>
+            Loans
+          </div>
           <div id="aax" class="btn  text-center text-white">
             <a class="text-white" href="/admin/login">Admin </a>
           </div>
+     
         </div>
       </div>
     </section>
-<div class="row gx-0 py-4 bnn" style='
-  position: relative;                                        
-  height: 200px;
-  overflow: hidden;
-  background: #C04848;
-  background: linear-gradient(rgb(72, 0, 72, 0.8), rgb(192, 72, 72, 0.8)), url("/images/bg.jpg");
-  background: linear-gradient(rgba(217, 199, 217, 0.24), rgba(187, 170, 170, 0.82)), url("/images/home-bg.jpg");
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: bottom;
-  background-attachment: fixed;
-    transition: height 2s;'>
-    <i 
-    onclick="$('.bnn').addClass('d-none')" 
-    class="fa btn fa-times text-white position-absolute" style="right: 4px;width: 10px;top: 0px;"></i>
-  <div class="col-12 col-lg-6 offset-lg-3">
-    <div class="d-flex justify-content-center align-items-center">
-      <div class="ps-4 d-flex flex-column justify-content-center align-items-center">
-        <div class="fs-1  d-flex flex-column ">
-          <img src="/images/logo.png" style="max-width:  150px; max-height: 64vh;">
+    <div class="row gx-0 py-4 bnn" style='
+        position: relative;                                        
+        height: 200px;
+        overflow: hidden;
+        background: #C04848;
+        background: linear-gradient(rgb(72, 0, 72, 0.8), rgb(192, 72, 72, 0.8)), url("/images/bg.jpg");
+        background: linear-gradient(rgba(217, 199, 217, 0.24), rgba(187, 170, 170, 0.82)), url("/images/home-bg.jpg");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: bottom;
+        background-attachment: fixed;
+          transition: height 2s;'>
+      <i onclick="$('.bnn').addClass('d-none')" class="fa btn fa-times text-white position-absolute" style="right: 4px;width: 10px;top: 0px;"></i>
+      <div class="col-12 col-lg-6 offset-lg-3">
+        <div class="d-flex justify-content-center align-items-center">
+          <div class="ps-4 d-flex flex-column justify-content-center align-items-center">
+            <div class="fs-1  d-flex flex-column ">
+              <img src="/images/logo.png" style="max-width:  150px; max-height: 64vh;">
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
     <section class="pb-4" id="subcontent">
     </section>
   </div>
@@ -102,16 +111,24 @@
       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
         repeatAction("public_books.html")'>Books </a>
+         <!-- slot for categories-->
+          <div id="category_listingx" class="py-2 d-flex flex-column" style="height: 300px;overflow-x: scroll;"> 
+            
+          </div>
       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
         repeatAction("public_search.html")'>Search </a>
-     
+       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+        toggleSidebar();
+        repeatAction("member_loan.html")'>Loans </a>
       <a class="list-group-item list-group-item-action" href="/admin/login">Admin </a>
     </div>
   </div>
 </div>
 <span id="sign-in-button"></span>
 <div id="recaptcha-container"></div>
+
+
 <!--
                 <div class="d-flex flex-column p-2 sres" >
                   <span>Title 1</span>
@@ -123,6 +140,7 @@
                 </div>
 -->
 <script type="text/javascript">
+
 var query_string
 var idleTime = 0
 var interval = 1000
@@ -224,11 +242,7 @@ function hprocessSearchForm(dom) {
 
 
     })
-
-
-
 }
-
 
 $(document).on("click", ".sres", () => {
   // alert("!")
@@ -237,9 +251,6 @@ $(document).on("click", ".sres", () => {
   $("#autolist").addClass("d-none")
 })
 var default_page = "landing.html"
-
-
-
 
 function repeatAction(default_page) {
   var title = default_page.split(".")[0]
@@ -253,7 +264,6 @@ function repeatAction(default_page) {
   })
 }
 repeatAction(default_page)
-
 
 // nav toggles
 function toggleSidebar(forceClose) {
@@ -272,6 +282,47 @@ function toggleSidebar(forceClose) {
     $("div[aria-label='sidebar']").toggleClass("d-none")
   }
 }
+
+
+var book_categorySourcex = new phoenixModel({
+  columns: [{
+    label: 'Action',
+    data: 'id'
+  }],
+  moduleName: "BookCategory",
+  link: "BookCategory",
+  buttons: [],
+  tableSelector: "#" + 'bc2c'
+})
+getTableData(book_categorySourcex, 100, () => {
+
+  for (var i = 0; i < book_categorySourcex.allData.length; i++) {
+    var card = `
+               <span class="px-lg-2 mx-lg-2 px-4 mx-4 rounded bct border-1 border-bottom pb-2 text-muted btn "
+            onclick='
+            App.show();
+            repeatAction("public_books.html")
+            toggleSidebar();
+            $("#lbc").html("` + book_categorySourcex.allData[i].code + ` ` + book_categorySourcex.allData[i].name + `")
+            $(".bct").removeClass("bg-secondary text-white")
+            $(this).removeClass("text-muted")
+            $(this).addClass("bg-secondary text-white")
+            book_inventorySource.table.search("").draw()
+            book_inventorySource.table.columns(1)
+        .search("` + book_categorySourcex.allData[i].id + `")
+        .draw();
+        App.hide();
+        '>
+              <small class="d-flex justify-content-between align-items-center">
+                <span>` + book_categorySourcex.allData[i].code + ` ` + book_categorySourcex.allData[i].name + `</span>
+                <span>` + book_categorySourcex.allData[i].book_count + `</span>
+              </small>
+            </span>
+    `
+    $("#category_listingx").append(card)
+  }
+})
+
 var ui;
 $(document).ready(() => {
   var firebaseConfig = {
@@ -298,8 +349,5 @@ $(document).ready(() => {
     }
   );
   ui = new firebaseui.auth.AuthUI(firebase.auth());
-
-
-
 })
 </script>
