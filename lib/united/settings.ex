@@ -1891,6 +1891,18 @@ defmodule United.Settings do
         |> Enum.filter(&(&1.month == Date.utc_today().month))
         |> Enum.count()
 
+      month = Date.utc_today().month
+
+      m_idx =
+        (100 + month)
+        |> Integer.to_string()
+        |> String.split("")
+        |> Enum.reject(&(&1 == ""))
+        |> Enum.reverse()
+        |> Enum.take(2)
+        |> Enum.reverse()
+        |> Enum.join("")
+
       idx =
         (1000 + tcount + 1)
         |> Integer.to_string()
@@ -1905,7 +1917,7 @@ defmodule United.Settings do
         group_id: default_group.id,
         phone: "n/a",
         ic: "n/a",
-        code: "#{Date.utc_today().year}#{Date.utc_today().month}-#{idx}",
+        code: "#{Date.utc_today().year}#{m_idx}-#{idx}",
         name: name,
         email: email,
         psid: uid,
@@ -2244,7 +2256,7 @@ defmodule United.Settings do
     Repo.all(
       from l in Loan,
         where: l.has_return == ^false,
-        preload: [:book]
+        preload: [:book, :member]
     )
   end
 
@@ -2256,6 +2268,18 @@ defmodule United.Settings do
             l.has_return == ^false,
         preload: [:book]
     )
+  end
+
+  def extend_book(loan_id) do
+    l = get_loan!(loan_id) |> Repo.preload(member: :group)
+
+    # check member's member extension period
+    # l.member.group.extension_period
+
+    update_loan(l, %{
+      has_extended: true,
+      return_date: l.return_date |> Timex.shift(days: l.member.group.extension_period)
+    })
   end
 
   def return_book(loan_id) do

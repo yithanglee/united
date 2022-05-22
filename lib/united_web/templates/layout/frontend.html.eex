@@ -49,7 +49,7 @@
               <div class="">
                 Monday and Wed:11.30am - 3pm
                 <br>
-                Sunday : 9.15am - 10.15am</div>
+                Sunday : 9.15am - 10.45am</div>
             </div>
           </div>
           <div class="col-6 col-lg-3 p-4 p-lg-0 ">
@@ -95,6 +95,11 @@
         toggleSidebar()
       }
     });
+
+    // console.log = function() {}
+
+
+
     </script>
   <div class="modal" id="mySubModal">
     <div class="modal-dialog modal-lg" role="document">

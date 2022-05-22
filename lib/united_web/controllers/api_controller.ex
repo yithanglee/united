@@ -203,25 +203,30 @@ defmodule UnitedWeb.ApiController do
 
           m = United.Settings.search_member(%{"member_code" => member_code}, true) |> List.first()
 
-          if United.Settings.book_can_loan(bi.id) |> Enum.count() > 0 do
-            %{status: "error"}
-          else
-            if bi != nil && m != nil do
-              case United.Settings.create_loan(%{
-                     loan_date: loan_date,
-                     return_date: return_date,
-                     book_inventory_id: bi.id,
-                     member_id: m.id
-                   }) do
-                {:ok, _p} ->
-                  %{status: "ok"}
-
-                _ ->
-                  %{status: "error"}
-              end
+          # check if member is already approved...
+          if m.is_approved do
+            if United.Settings.book_can_loan(bi.id) |> Enum.count() > 0 do
+              %{status: "error", reason: "Book already loaned."}
             else
-              %{status: "empty"}
+              if bi != nil && m != nil do
+                case United.Settings.create_loan(%{
+                       loan_date: loan_date,
+                       return_date: return_date,
+                       book_inventory_id: bi.id,
+                       member_id: m.id
+                     }) do
+                  {:ok, _p} ->
+                    %{status: "ok"}
+
+                  _ ->
+                    %{status: "error", reason: "Loan issue."}
+                end
+              else
+                %{status: "error", reason: "Book, member missing in action."}
+              end
             end
+          else
+            %{status: "error", reason: "Not yet approved by admins."}
           end
 
         "search_book" ->
@@ -289,6 +294,17 @@ defmodule UnitedWeb.ApiController do
 
             {:error, _expired} ->
               %{status: "expired"}
+          end
+
+        "extend_book" ->
+          l = United.Settings.get_loan!(params["loan_id"])
+
+          if l.has_extended do
+            # United.Settings.extend_book(params["loan_id"])
+            %{status: "error", reason: "Book already extended, kindly return this book when due."}
+          else
+            United.Settings.extend_book(params["loan_id"])
+            %{status: "received"}
           end
 
         "return_book" ->

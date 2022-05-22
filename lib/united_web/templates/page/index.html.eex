@@ -17,36 +17,41 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
             <div class="px-0 pe-2 btn d-block  " onclick="toggleSidebar();">
               <i class=" fa fa-list"></i>
             </div>
-           
           </div>
-           <div class="btn p-0" onclick='repeatAction("landing.html")'>
-              <span class="fs-3">ARK Library</span>
+          <div class="btn p-0" onclick='repeatAction("landing.html")'>
+            <span class="fs-3">ARK Library</span>
+          </div>
+          <div class="d-flex justify-content-center align-items-center position-relative">
+            <span class="ps-1 d-none d-lg-block" id="ulg">Login</span>
+            <div class="btn d-block " onclick='
+              if (localStorage.getItem("pkey") != null) {
+                repeatAction("account.html")
+              } else {
+                repeatAction("register.html")
+              }
+            '>
+              <i class=" fa fa-user"></i>
             </div>
-          <div class="btn d-block " onclick='
-            if (localStorage.getItem("pkey") != null) {
-              repeatAction("account.html")
-            } else {
-              repeatAction("register.html")
-            }
-          '>
-            <i class=" fa fa-user"></i>
-            <span class="ps-1 d-none" id="ulg">Login</span>
+              <span class="online-status"></span>
           </div>
         </nav>
         <nav>
           <div class="pb-2">
             <form id="searchz" class="my-2 mx-lg-0 mx-2 position-relative d-flex align-items-center">
-              <div class="btn end-0 position-absolute">
-                <i class="fa fa-search ">
+              <div class=" end-0 position-absolute">
+                <i class="btn fa fa-qrcode px-1 text-success " onclick="
+            repeatAction('member_loan.html');
+            scan_barcode()">
+                </i>
+                <i class="btn fa fa-search px-2 text-primary " onclick="
+            repeatAction('public_search.html');
+            ">
                 </i>
               </div>
               <input autocomplete="off" type="text" list="browsers" class=" form-control" placeholder="Search by title, ISBN, barcode" name="query">
               <div class="d-none position-absolute bg-white w-100" id="autolist" style="top: 40px; z-index: 1000;">
               </div>
             </form>
-            <a href="javascript:void(0);" onclick="
-            repeatAction('member_loan.html');
-            scan_barcode()" class="ps-3">+ Scan QR-code</a>
           </div>
         </nav>
       </div>
@@ -69,7 +74,6 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
           <div id="aax" class="btn  text-center text-white">
             <a class="text-white" href="/admin/login">Admin </a>
           </div>
-     
         </div>
       </div>
     </section>
@@ -102,33 +106,39 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
   <div aria-label="sidebar" class="d-none position-fixed position-lg-block min-vh-100 col-10 col-lg-2 bg-light end-0" style="z-index: 20;">
     <div class="btn  d-flex align-items-center gap-2" onclick="toggleSidebar();">
       <i class=" fa fa-minus"></i>
-      <span class="py-2">Navigation</span>
+      <span class="py-2">Welcome! <span class="ps-1" id="ulg2"></span></span>
+    </div>
+    <div>
+
+      
     </div>
     <div class="list-group">
       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
-        repeatAction("landing.html")'>Home </a>
+        repeatAction("landing.html")'>
+        <i class="fa fa-home me-2 text-primary"></i>Home </a>
       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
-        repeatAction("public_books.html")'>Books </a>
-         <!-- slot for categories-->
-          <div id="category_listingx" class="py-2 d-flex flex-column" style="height: 300px;overflow-x: scroll;"> 
-            
-          </div>
+        repeatAction("public_books.html")'>
+        <i class="fa fa-book me-2 text-success"></i>Books </a>
+      <!-- slot for categories-->
+      <div id="category_listingx" class="py-2 d-flex flex-column" style="height: 300px;overflow-x: scroll;">
+      </div>
       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
-        repeatAction("public_search.html")'>Search </a>
-       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+        repeatAction("public_search.html")'>
+        <i class="fa fa-search me-2 text-warning"></i>Search </a>
+      <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
-        repeatAction("member_loan.html")'>Loans </a>
-      <a class="list-group-item list-group-item-action" href="/admin/login">Admin </a>
+        repeatAction("member_loan.html")'>
+        <i class="fa fa-list me-2 text-info"></i>Loans </a>
+      <a class="list-group-item list-group-item-action" href="/admin/login">
+        <i class="fa fa-info me-2 text-danger"></i> Admin </a>
     </div>
   </div>
 </div>
 <span id="sign-in-button"></span>
 <div id="recaptcha-container"></div>
-
-
 <!--
                 <div class="d-flex flex-column p-2 sres" >
                   <span>Title 1</span>
@@ -140,7 +150,6 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
                 </div>
 -->
 <script type="text/javascript">
-
 var query_string
 var idleTime = 0
 var interval = 1000
@@ -164,11 +173,10 @@ function checkNewInput() {
   if (startTimer) {
     if (query_string == s) {
       idleTime += 1
-      if (idleTime == 4) {
+      if (idleTime == 2) {
         idleTime = 0
         console.log("search :" + s)
         if (s != "") {
-
           hprocessSearchForm("form#searchz")
         }
         startTimer = false
@@ -180,7 +188,6 @@ function checkNewInput() {
 }
 
 function hprocessSearchForm(dom) {
-
   $("#autolist").removeClass("d-none")
   var formData = new FormData($(dom)[0])
   formData.append("scope", "strong_search")
@@ -203,18 +210,15 @@ function hprocessSearchForm(dom) {
       //     from: "bottom",
       //     align: "center"
       //   },
-
       //   type: "success"
       // });
       $("#autolist").html("")
       j.forEach((bookInventory, i) => {
-
         var images_list = []
         bookInventory.book_images.forEach((images, i) => {
           images_list.push(`<div style="width: 100px; height: 150px; background-size: cover; background-position: center; background-image: url('` + images.img_url + `')"></div>`)
         })
         var aut = "No Author"
-
         if (bookInventory.author != null) {
           aut = bookInventory.author.name
         }
@@ -229,18 +233,13 @@ function hprocessSearchForm(dom) {
                   <small class="text-muted">` + aut + `</small>
                   <small>` + bookInventory.code + `</small>
                 </div>
-
                   `
         $("#autolist").append(card)
       })
-
     }).fail(() => {
       App.notify("Not found!", {
         type: "danger"
       });
-
-
-
     })
 }
 
@@ -251,20 +250,47 @@ $(document).on("click", ".sres", () => {
   $("#autolist").addClass("d-none")
 })
 var default_page = "landing.html"
+window.back = false
 
-function repeatAction(default_page) {
+function repeatAction(default_page, additionalParamString) {
+  console.log(additionalParamString)
+  var xParamString = ""
+  if (additionalParamString == null) {
+    xParamString = ""
+  } else {
+    xParamString = additionalParamString
+  }
+   
   var title = default_page.split(".")[0]
-  var stateObj = { fn: `repeatAction('` + default_page + `')`, title: title };
-  $("title").html(title)
-  history.pushState(stateObj, title, "?get=" + title);
+  var route_names = [
+    { title: "landing", alias: "Home - ARK Library" },
+    { title: "public_books", alias: "Books - ARK Library" },
+    { title: "public_search", alias: "Search - ARK Library" },
+    { title: "member_loan", alias: "Loan - ARK Library" },
+    { title: "register", alias: "Register - ARK Library" },
+    { title: "account", alias: "Account - ARK Library" },
+    { title: "book_detail", alias: "Detail - ARK Library" },
+  ]
+  var doc_title = "ARK Library"
+  doc_title = route_names.filter((v, i) => {
+    return v.title == title;
+  })[0]
+  $("title").html(doc_title.alias)
+  // whether or not to pushstate, else when click back, the state will repeat the same route.. 
+  if (window.back) {
+
+  } else {
+    var stateObj = { fn: `repeatAction('` + default_page + `', '`+xParamString+`')`, title: title };
+    history.pushState(stateObj, doc_title, "?get=" + title + xParamString);
+
+  }
+  window.back = false
   App.show()
   $.ajax({ url: "/html/" + default_page, async: false }).done((html) => {
     $("#subcontent").html(html)
     App.hide()
   })
 }
-repeatAction(default_page)
-
 // nav toggles
 function toggleSidebar(forceClose) {
   console.log("sidebar")
@@ -283,7 +309,6 @@ function toggleSidebar(forceClose) {
   }
 }
 
-
 var book_categorySourcex = new phoenixModel({
   columns: [{
     label: 'Action',
@@ -297,11 +322,17 @@ var book_categorySourcex = new phoenixModel({
 getTableData(book_categorySourcex, 100, () => {
 
   for (var i = 0; i < book_categorySourcex.allData.length; i++) {
+
+
+
+additionalParamString = "&category_code=" +  book_categorySourcex.allData[i].code
+
+
     var card = `
                <span class="px-lg-2 mx-lg-2 px-4 mx-4 rounded bct border-1 border-bottom pb-2 text-muted btn "
             onclick='
             App.show();
-            repeatAction("public_books.html")
+            repeatAction("public_books.html", "`+additionalParamString+`")
             toggleSidebar();
             $("#lbc").html("` + book_categorySourcex.allData[i].code + ` ` + book_categorySourcex.allData[i].name + `")
             $(".bct").removeClass("bg-secondary text-white")
@@ -325,6 +356,15 @@ getTableData(book_categorySourcex, 100, () => {
 
 var ui;
 $(document).ready(() => {
+  var title = getUrlParameter("get")
+  if (title != null) {
+    try {
+      repeatAction(title + ".html")
+    } catch (e) {}
+  } else {
+    repeatAction("landing.html")
+  }
+
   var firebaseConfig = {
     apiKey: "AIzaSyC1LklnwigrQdW1RrJGuo0Pj7YTBWrCgTw",
     authDomain: "kjcmc-library.firebaseapp.com",

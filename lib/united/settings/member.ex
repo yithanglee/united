@@ -7,6 +7,9 @@ defmodule United.Settings.Member do
     field :city, :string
     field :code, :string
     field :email, :string
+
+    field :gender, :string
+    field :religion, :string
     field :fb_user_id, :string
     # field :group_id, :integer
     field :password, :string, virtual: true
@@ -19,6 +22,10 @@ defmodule United.Settings.Member do
     field :psid, :string
     field :username, :string
     field :image_url, :string
+
+    field :is_approved, :boolean, default: false
+    field :approved_by, :integer
+    field :approved_on, :naive_datetime
     timestamps()
   end
 
@@ -26,6 +33,11 @@ defmodule United.Settings.Member do
   def changeset(member, attrs) do
     member
     |> cast(attrs, [
+      :gender,
+      :religion,
+      :is_approved,
+      :approved_on,
+      :approved_by,
       :username,
       :image_url,
       :name,
