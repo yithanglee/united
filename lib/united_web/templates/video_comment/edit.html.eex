@@ -1,5 +1,0 @@
-<h1>Edit Video comment</h1>
-
-<%= render "form.html", Map.put(assigns, :action, Routes.video_comment_path(@conn, :update, @video_comment)) %>
-
-<span><%= link "Back", to: Routes.video_comment_path(@conn, :index) %></span>

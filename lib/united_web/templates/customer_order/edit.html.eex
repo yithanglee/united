@@ -1,5 +1,0 @@
-<h1>Edit Customer order</h1>
-
-<%= render "form.html", Map.put(assigns, :action, Routes.customer_order_path(@conn, :update, @customer_order)) %>
-
-<span><%= link "Back", to: Routes.customer_order_path(@conn, :index) %></span>

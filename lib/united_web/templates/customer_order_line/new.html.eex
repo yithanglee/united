@@ -1,5 +1,0 @@
-<h1>New Customer order line</h1>
-
-<%= render "form.html", Map.put(assigns, :action, Routes.customer_order_line_path(@conn, :create)) %>
-
-<span><%= link "Back", to: Routes.customer_order_line_path(@conn, :index) %></span>

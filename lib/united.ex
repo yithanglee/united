@@ -6,7 +6,8 @@ defmodule United do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
-  import Mogrify
+  # import Mogrify
+  use Joken.Config
 
   def ensure_gtoken_kv_created() do
     if Process.whereis(:gtoken_kv) == nil do
@@ -342,7 +343,11 @@ defmodule United do
     res =
       "#{path}/#{filename}"
       |> ExAws.S3.Upload.stream_file()
-      |> ExAws.S3.upload("damien-bucket", filename, opts)
+      |> ExAws.S3.upload(
+        "damien-bucket",
+        filename,
+        opts
+      )
       |> ExAws.request!()
 
     data = res.body |> SweetXml.parse()

@@ -8,7 +8,7 @@ defmodule United.Settings.User do
     field :email, :string
     field :full_name, :string
     field :username, :string
-    field :password, :string
+    field :password, :string, virtual: true
     field :phone, :string
     field :user_access_token, :string
     field :fb_user_id, :string
@@ -34,7 +34,6 @@ defmodule United.Settings.User do
       :bio,
       :email,
       :phone,
-      :password,
       :crypted_password
     ])
 

@@ -23,9 +23,13 @@ defmodule United.Settings.Member do
     field :username, :string
     field :image_url, :string
 
-    field :is_approved, :boolean, default: false
+    field :is_approved, :boolean, default: true
     field :approved_by, :integer
     field :approved_on, :naive_datetime
+
+    field :qrcode, :string
+    field :has_check_in, :boolean, default: false
+
     timestamps()
   end
 
@@ -33,6 +37,8 @@ defmodule United.Settings.Member do
   def changeset(member, attrs) do
     member
     |> cast(attrs, [
+      :qrcode,
+      :has_check_in,
       :gender,
       :religion,
       :is_approved,

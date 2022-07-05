@@ -44,23 +44,15 @@ defmodule UnitedWeb.Router do
     get("/logout", LoginController, :logout)
     resources "/users", UserController
     resources "/blogs", BlogController
-    resources "/shops", ShopController
-    resources "/shop_products", ShopProductController
+
     resources "/tags", TagController
-    resources "/shop_product_tags", ShopProductTagController
+
     resources "/stored_medias", StoredMediaController
-    resources "/facebook_pages", FacebookPageController
-    resources "/live_videos", LiveVideoController
-    resources "/video_comments", VideoCommentController
-    resources "/page_visitors", PageVisitorController
-    resources "/customer_orders", CustomerOrderController
-    resources "/customer_order_lines", CustomerOrderLineController
   end
 
   scope "/api", UnitedWeb do
     pipe_through :api
-    get("/webhook/fb", ApiController, :fb_webhook)
-    post("/webhook/fb", ApiController, :fb_webhook_post)
+
     get("/webhook", ApiController, :webhook)
     post("/webhook", ApiController, :webhook_post)
     delete("/webhook", ApiController, :webhook_delete)
@@ -97,9 +89,7 @@ defmodule UnitedWeb.Router do
 
   scope "/", UnitedWeb do
     pipe_through [:browser, :frontend]
-    get "/fb_login", PageController, :fb_login
-    get "/fb_relogin", PageController, :fb_relogin
-    get "/fb_callback", PageController, :fb_callback
+
     get "/*path", PageController, :index
   end
 end

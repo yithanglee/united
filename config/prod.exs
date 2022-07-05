@@ -13,19 +13,19 @@ use Mix.Config
 #   url: [host: "example.com", port: 80],
 #   cache_static_manifest: "priv/static/cache_manifest.json"
 config :united, UnitedWeb.Endpoint,
-  url: [host: "kjcmc-library.ml", port: 5492],
+  url: [host: "library.kajangcmc.org", port: 5492],
   http: [port: 5492],
   https: [
     port: 5493,
     otp_app: :united,
-    keyfile: "/etc/letsencrypt/live/kjcmc-library.ml/privkey.pem",
-    cacertfile: "/etc/letsencrypt/live/kjcmc-library.ml/fullchain.pem",
-    certfile: "/etc/letsencrypt/live/kjcmc-library.ml/cert.pem"
+    keyfile: "/etc/letsencrypt/live/library.kajangcmc.org/privkey.pem",
+    cacertfile: "/etc/letsencrypt/live/library.kajangcmc.org/fullchain.pem",
+    certfile: "/etc/letsencrypt/live/library.kajangcmc.org/cert.pem"
   ],
   check_origin: [
-    "https://kjcmc-library.ml",
-    "https://www.kjcmc-library.ml",
-    "http://kjcmc-library.ml"
+    "https://library.kajangcmc.org",
+    "https://library.kajangcmc.org",
+    "http://library.kajangcmc.org"
   ]
 
 # Do not print debug messages in production

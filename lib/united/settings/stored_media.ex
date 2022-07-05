@@ -8,14 +8,14 @@ defmodule United.Settings.StoredMedia do
     field :name, :string
     field :s3_url, :binary
     field :size, :integer
-
+    field :img_url, :string, virtual: true
     timestamps()
   end
 
   @doc false
   def changeset(stored_media, attrs) do
     stored_media
-    |> cast(attrs, [:name, :s3_url, :size, :f_type, :f_extension])
+    |> cast(attrs, [:img_url, :name, :s3_url, :size, :f_type, :f_extension])
 
     # |> validate_required([:name, :s3_url, :size, :f_type, :f_extension])
   end

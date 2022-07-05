@@ -7,6 +7,9 @@ defmodule UnitedWeb.ApiController do
   def webhook_post(conn, params) do
     final =
       case params["scope"] do
+        "page_section" ->
+          %{status: "ok"}
+
         "remove_bi_to_tag" ->
           United.Settings.remove_bi_to_tag(params)
           %{status: "ok"}
@@ -249,8 +252,56 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "has_check_in" ->
+          {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
+
+          member = United.Settings.get_member!(map.id)
+
+          if member.has_check_in do
+            %{status: "ok"}
+          else
+            %{status: "error"}
+          end
+
+        "check_out_member" ->
+          United.Settings.check_out(params["code"])
+          %{status: "ok"}
+
+        "check_in_member" ->
+          United.Settings.check_in(params["code"])
+          %{status: "ok"}
+
+        "get_check_in" ->
+          {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
+
+          member = United.Settings.get_member!(map.id)
+
+          length = 10
+          code = :crypto.strong_rand_bytes(length) |> Base.encode64() |> binary_part(0, length)
+          # everytime request, keep update the member;
+
+          United.Settings.update_member(member, %{qrcode: code})
+          code
+
+        "page_section" ->
+          United.Settings.get_page_section_name(params["section"])
+          |> BluePotion.s_to_map()
+
         "book_data" ->
-          United.Settings.book_data(params) |> BluePotion.s_to_map()
+          bi = United.Settings.book_data(params) |> BluePotion.s_to_map()
+
+          outstanding_loans = United.Settings.book_can_loan(bi.id)
+
+          return_date =
+            if outstanding_loans != [] do
+              List.first(outstanding_loans).return_date
+            else
+              ""
+            end
+
+          bi
+          |> Map.put(:available, outstanding_loans == [])
+          |> Map.put(:return_date, return_date)
 
         "get_tag_books" ->
           United.Settings.get_tag_books(params)

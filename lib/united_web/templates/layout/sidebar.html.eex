@@ -5,7 +5,7 @@
     </div>
   </div>
   <div class="d-flex flex-column justify-content-center text-center ">
-    <span class="lead" id="cur_user">Famour User</span>
+    <span class="lead text-white" id="cur_user">Famour User</span>
     <a href="javascript:void(0);" onclick="editProfile()">Edit Profile</a>
   </div>
 </div>
@@ -50,7 +50,20 @@
     </span>
     <span class="ps-2"> Scan</span>
   </a>
-  
+    
+  <a href="javascript:void(0);" onclick="checkInMember()" class="list-group-item list-group-item-action">
+    <span class="badge bg-primary rounded-pill">
+      <i class="fa fa-sm fa-qrcode"></i>
+    </span>
+    <span class="ps-2"> Check In Member</span>
+  </a>
+    
+  <a href="javascript:void(0);" onclick="checkOutMember()" class="list-group-item list-group-item-action">
+    <span class="badge bg-primary rounded-pill">
+      <i class="fa fa-sm fa-qrcode"></i>
+    </span>
+    <span class="ps-2"> Check Out Member</span>
+  </a>
   <a href="#" class="list-group-item list-group-item-action">
     <span class="badge bg-primary rounded-pill">
       <i class="fa fa-sm fa-wrench"></i>
