@@ -2239,6 +2239,8 @@ defmodule United.Settings do
         Map.put(map, "REASON", reason)
       end
 
+    United.Settings.repopulate_categories()
+
     update_book_upload(bu, %{
       failed_qty: Enum.count(failed_lines),
       uploaded_qty: Enum.count(success),
