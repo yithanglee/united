@@ -8,6 +8,34 @@ defmodule United do
   """
   # import Mogrify
   use Joken.Config
+  def loan_reminder_check(string) do
+    IO.inspect("checks #{string}")
+  end
+  def loan_reminder() do
+      insert_fine = fn map ->
+        fine_amount = map.member.group.fine_amount
+        fine_days = map.member.group.fine_days
+        qty = (Date.diff(Date.utc_today(), map.return_date) / fine_days) |> Float.round()
+        map
+        |> Map.put(:late_days, Date.diff(Date.utc_today(), map.return_date))
+        |> Map.put(:fine_amount, fine_amount * qty)
+        |> IO.inspect()
+      end
+      
+      members =
+      United.Settings.all_outstanding_loans()
+      |> Enum.map(&(&1 |> BluePotion.sanitize_struct() |> insert_fine.()))
+      |> Enum.filter(& &1.late_days > -7) |> Enum.group_by(& &1.member)
+
+
+
+      for member <- members |> Map.keys do
+        loans = members[member]
+        books = Enum.map(loans, & {&1.book, &1.return_date})
+        United.Email.remind_email(member.email, member, books) |> United.Mailer.deliver_now
+      end
+
+  end
 
   def ensure_gtoken_kv_created() do
     if Process.whereis(:gtoken_kv) == nil do
@@ -118,7 +146,7 @@ defmodule United do
     struct =
       singular |> String.split("_") |> Enum.map(&(&1 |> String.capitalize())) |> Enum.join("")
 
-    dynamic_code =
+    _dynamic_code =
       """
         alias United.Settings.#{struct}
         def list_#{plural}() do

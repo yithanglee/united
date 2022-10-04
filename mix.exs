@@ -20,7 +20,7 @@ defmodule United.MixProject do
   def application do
     [
       mod: {United.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :bamboo]
     ]
   end
 
@@ -33,6 +33,8 @@ defmodule United.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bamboo, "~> 2.2.0"},
+      {:bamboo_phoenix, "~> 1.0"},
       {:mime, "~> 1.0"},
       {:phoenix, "~> 1.5.8"},
       {:phoenix_ecto, "~> 4.1"},
@@ -61,7 +63,8 @@ defmodule United.MixProject do
       {:csv, "~> 2.0.0"},
       {:xlsxir, "~> 1.6.4"},
       {:joken, "~> 2.4.1"},
-      {:mogrify, "~> 0.9.1"}
+      {:mogrify, "~> 0.9.1"},
+      {:quantum, "~> 2.0"}
     ]
   end
 

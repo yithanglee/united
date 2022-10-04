@@ -1901,7 +1901,7 @@ defmodule United.Settings do
     Repo.all(
       from l in Loan,
         where: l.has_return == ^false,
-        preload: [:book, :member]
+        preload: [:book, [member: :group]]
     )
   end
 
@@ -1911,7 +1911,7 @@ defmodule United.Settings do
         where:
           l.member_id == ^member_id and
             l.has_return == ^false,
-        preload: [:book]
+        preload: [:book, [member: :group]]
     )
   end
 
@@ -2203,8 +2203,6 @@ defmodule United.Settings do
     {:error, "unknown error", params}
   end
 
-  require IEx
-
   def upload_books(data, bu) do
     upload_lines =
       for map_d <- data do
@@ -2223,7 +2221,6 @@ defmodule United.Settings do
             "PUBLISHER",
             "TITLE"
           ])
-          |> IO.inspect()
 
         setup_book(m, bu)
       end
@@ -2394,9 +2391,7 @@ defmodule United.Settings do
       end
       |> Enum.group_by(& &1)
 
-    keys =
-      Map.keys(final_bi)
-      |> IO.inspect()
+    keys = Map.keys(final_bi)
 
     for key <- keys do
       update_book_category(key, %{book_count: Enum.count(final_bi[key])})

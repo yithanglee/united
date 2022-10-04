@@ -71,3 +71,5 @@ config :united, :facebook,
   accounting_url: System.get_env("ACCOUNTING_URL"),
   base_url: System.get_env("FB_CALLBACK") |> String.split("/fb_callback") |> List.first(),
   callback_url: System.get_env("FB_CALLBACK")
+
+config :united, United.Mailer, adapter: Bamboo.LocalAdapter

@@ -202,12 +202,16 @@ defmodule UnitedWeb.ApiController do
           } = params
 
           bi =
-            United.Settings.search_book_inventory(%{"barcode" => barcode}, true) |> List.first()
+            United.Settings.search_book_inventory(
+              %{"barcode" => barcode |> String.replace(" ", "")},
+              true
+            )
+            |> List.first() |> IO.inspect
 
           m = United.Settings.search_member(%{"member_code" => member_code}, true) |> List.first()
 
           # check if member is already approved...
-          if m.is_approved do
+          if m.is_approved && bi != nil do
             if United.Settings.book_can_loan(bi.id) |> Enum.count() > 0 do
               %{status: "error", reason: "Book already loaned."}
             else
@@ -229,7 +233,11 @@ defmodule UnitedWeb.ApiController do
               end
             end
           else
-            %{status: "error", reason: "Not yet approved by admins."}
+            if bi == nil do
+              %{status: "error", reason: "Barcode not recognized."}
+            else
+              %{status: "error", reason: "Not yet approved by admins."}
+            end
           end
 
         "search_book" ->
@@ -367,12 +375,36 @@ defmodule UnitedWeb.ApiController do
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
         "all_outstanding_loans" ->
+          insert_fine = fn map ->
+            fine_amount = map.member.group.fine_amount
+            fine_days = map.member.group.fine_days
+
+            qty = (Date.diff(Date.utc_today(), map.return_date) / fine_days) |> Float.round()
+
+            map
+            |> Map.put(:late_days, Date.diff(Date.utc_today(), map.return_date))
+            |> Map.put(:fine_amount, fine_amount * qty)
+            |> IO.inspect()
+          end
+
           United.Settings.all_outstanding_loans()
-          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+          |> Enum.map(&(&1 |> BluePotion.sanitize_struct() |> insert_fine.()))
 
         "member_outstanding_loans" ->
+          insert_fine = fn map ->
+            fine_amount = map.member.group.fine_amount
+            fine_days = map.member.group.fine_days
+
+            qty = (Date.diff(Date.utc_today(), map.return_date) / fine_days) |> Float.round()
+
+            map
+            |> Map.put(:late_days, Date.diff(Date.utc_today(), map.return_date))
+            |> Map.put(:fine_amount, fine_amount * qty)
+            |> IO.inspect()
+          end
+            
           United.Settings.member_outstanding_loans(params["member_id"])
-          |> Enum.map(&(&1 |> BluePotion.s_to_map()))
+          |> Enum.map(&(&1 |> BluePotion.sanitize_struct() |> insert_fine.()))
 
         "gen_inputs" ->
           BluePotion.test_module(params["module"])
@@ -421,7 +453,7 @@ defmodule UnitedWeb.ApiController do
       for mod <- mods do
         Module.concat([Application.get_env(:blue_potion, :otp_app), mod, model])
       end
-      |> Enum.filter(&Code.ensure_compiled?(&1))
+      |> Enum.filter(&Code.ensure_compiled(&1))
       |> List.first()
 
     IO.inspect(struct)

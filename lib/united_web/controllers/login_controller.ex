@@ -93,7 +93,8 @@ defmodule UnitedWeb.LoginController do
         Phoenix.Token.sign(
           UnitedWeb.Endpoint,
           "signature",
-          BluePotion.s_to_map(user) |> Map.take([:id, :name])
+          BluePotion.s_to_map(user) |> Map.take([:id, :name]),
+          max_age: 2_592_000
         )
 
       # {user, token}

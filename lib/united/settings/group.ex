@@ -7,14 +7,15 @@ defmodule United.Settings.Group do
     field :loan_limit, :integer
     field :loan_period, :integer
     field :name, :string
-
+    field :fine_amount, :float, default: 0.50
+    field :fine_days, :integer, default: 7
     timestamps()
   end
 
   @doc false
   def changeset(group, attrs) do
     group
-    |> cast(attrs, [:name, :loan_limit, :loan_period, :extension_period])
+    |> cast(attrs, [:fine_amount, :fine_days, :name, :loan_limit, :loan_period, :extension_period])
     |> validate_required([:name, :loan_limit, :loan_period, :extension_period])
   end
 end

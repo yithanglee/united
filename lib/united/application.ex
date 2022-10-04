@@ -14,7 +14,8 @@ defmodule United.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: United.PubSub},
       # Start the Endpoint (http/https)
-      UnitedWeb.Endpoint
+      UnitedWeb.Endpoint,
+      United.Scheduler
       # Start a worker by calling: United.Worker.start_link(arg)
       # {United.Worker, arg}
     ]

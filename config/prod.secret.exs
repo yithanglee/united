@@ -44,3 +44,12 @@ config :united, :facebook,
   accounting_url: System.get_env("ACCOUNTING_URL_PROD"),
   base_url: System.get_env("FB_CALLBACK_PROD") |> String.split("/fb_callback") |> List.first(),
   callback_url: System.get_env("FB_CALLBACK_PROD")
+
+config :united, FbEcom.Mailer, adapter: Bamboo.SendGridAdapter
+
+config :united, United.Mailer,
+  adapter: Bamboo.SendGridAdapter,
+  api_key: System.get_env("SENDGRID_KEY"),
+  hackney_opts: [
+    recv_timeout: :timer.minutes(1)
+  ]

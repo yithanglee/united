@@ -48,6 +48,21 @@ config :united, :facebook,
   app_secret: System.get_env("APP_SECRET"),
   app_id: System.get_env("APP_ID")
 
+config :united, United.Scheduler,
+  jobs: [
+    {"05 4 * * 7",      {United, :loan_reminder_check, ["1"]}},
+    {"05 4 * * 3",      {United, :loan_reminder_check, ["1"]}},
+    {"05 4 * * 1",      {United, :loan_reminder_check, ["1"]}},
+    {"06 4 * * *",      {United, :loan_reminder_check, ["2"]}},
+    {"05 4 * * *",      {United, :loan_reminder_check, ["1"]}},
+    {"03 4 * * *",      {United, :loan_reminder_check, ["checks 51"]}},
+    
+    {"55 0 * * 7",      {United, :loan_reminder, ["1"]}},
+    {"55 0 * * 3",      {United, :loan_reminder, ["1"]}},
+    {"55 0 * * 1",      {United, :loan_reminder, ["1"]}},
+  ]
+
+
 config :ex_aws,
   access_key_id: "E5TQQRK798E01MT3RPRP",
   secret_access_key: "W1U0AMNppPkmPwKrmUoFcK6MLqFzDlK950mG4o05",
