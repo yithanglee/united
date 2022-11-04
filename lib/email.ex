@@ -13,7 +13,7 @@ defmodule United.Email do
     base_email()
     |> to(user_email)
     |> subject("Ark Library - Loan return reminder")
-    |> put_header("Reply-To", "no_reply@library.kajangcmc.org")
+    |> put_header("Reply-To", "library@kajangcmc.org")
     |> render("loan_reminder.html", member: member, books: books)
   end
 
@@ -22,17 +22,35 @@ defmodule United.Email do
     base_email()
     |> to(user_email)
     |> subject("Password reset request")
-    |> put_header("Reply-To", "no_reply@kajangcmc.org")
+    |> put_header("Reply-To", "library@kajangcmc.org")
     |> render("forget_password.html", user: user)
   end
 
-  def notification_email(customer_email, cart, visitor) do
+  def notification_email(customer_email, book, visitor) do
     # Build your default email then customize for welcome
     base_email()
     |> to(customer_email)
-    |> subject("Welcome!!!")
-    |> put_header("Reply-To", "no_reply@kajangcmc.org")
-    |> render("notify.html", cart: cart, visitor: visitor)
+    |> subject("Welcome")
+    |> put_header("Reply-To", "library@kajangcmc.org")
+    |> render("notify.html", book: book, visitor: visitor)
+  end
+
+  def reservation_email(customer_email, book, visitor) do
+    # Build your default email then customize for welcome
+    base_email()
+    |> to(customer_email)
+    |> subject("Ark Library - Book reserved")
+    |> put_header("Reply-To", "library@kajangcmc.org")
+    |> render("reserve.html", book: book, member: visitor)
+  end
+
+  def available_email(customer_email, book, visitor) do
+    # Build your default email then customize for welcome
+    base_email()
+    |> to(customer_email)
+    |> subject("Ark Library - Book available")
+    |> put_header("Reply-To", "library@kajangcmc.org")
+    |> render("available.html", book: book, member: visitor)
   end
 
   def _shipped_email(customer_email, cart, visitor) do
@@ -40,16 +58,17 @@ defmodule United.Email do
     base_email()
     |> to(customer_email)
     |> subject("Welcome!!!")
-    |> put_header("Reply-To", "no_reply@kajangcmc.org")
+    |> put_header("Reply-To", "library@kajangcmc.org")
     |> render("shipped.html", cart: cart, visitor: visitor)
   end
 
   defp base_email do
     new_email()
     # Set a default from
-    |> from("no_reply@library.kajangcmc.org")
+    |> from("library@kajangcmc.org")
     # Set default layout
     |> put_html_layout({UnitedWeb.LayoutView, "email.html"})
+
     # Set default text layout
     # |> put_text_layout({UnitedWeb.LayoutView, "email.text"})
   end

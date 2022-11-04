@@ -120,7 +120,10 @@
     });
 
     // console.log = function() {}
-
+  $(document).on("click", "a.navi", function(event) {
+    event.preventDefault();
+    navigateTo($(this).attr("href"))
+  });
 
 
     </script>

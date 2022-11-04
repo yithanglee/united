@@ -1488,7 +1488,20 @@ defmodule United.Settings do
   end
 
   def create_loan(params \\ %{}) do
-    Loan.changeset(%Loan{}, params) |> Repo.insert()
+    reservation = Map.get(params, :reservation, nil)
+    a = Loan.changeset(%Loan{}, params) |> Repo.insert()
+
+    case a do
+      {:ok, l} ->
+        if reservation != nil do
+          United.Settings.update_reservation(reservation, %{status: :loaned, loan_id: l.id})
+        end
+
+      _ ->
+        nil
+    end
+
+    a
   end
 
   def update_loan(model, params) do
@@ -1927,17 +1940,37 @@ defmodule United.Settings do
     })
   end
 
+  def send_available(customer_email, book, visitor) do
+    United.Email.available_email(customer_email, book, visitor) |> United.Mailer.deliver_now()
+  end
+
   def return_book(loan_id) do
-    l = get_loan!(loan_id) |> Repo.preload(:member)
+    l = get_loan!(loan_id) |> Repo.preload([:book, :member])
 
     m = l.member
 
     United.Settings.update_member(m, %{has_check_in: false})
 
+    next_reserve =
+      Repo.all(
+        from r in United.Settings.Reservation,
+          where:
+            is_nil(r.loan_id) and
+              r.book_inventory_id == ^l.book_inventory_id,
+          order_by: [asc: r.id],
+          preload: [:member]
+      )
+
+    if next_reserve != [] do
+      r = List.first(next_reserve)
+      Elixir.Task.start_link(__MODULE__, :send_available, [r.member.email, l.book, r.member])
+      United.Settings.update_reservation(r, %{status: :available})
+    end
+
+    # send email to next reservation
+
     update_loan(l, %{has_return: true})
   end
-
-  require IEx
 
   def setup_book(
         %{
@@ -2495,6 +2528,28 @@ defmodule United.Settings do
     Repo.delete(model)
   end
 
+  alias United.Settings.EmailReminder
+
+  def list_email_reminders() do
+    Repo.all(EmailReminder)
+  end
+
+  def get_email_reminder!(id) do
+    Repo.get!(EmailReminder, id)
+  end
+
+  def create_email_reminder(params \\ %{}) do
+    EmailReminder.changeset(%EmailReminder{}, params) |> Repo.insert()
+  end
+
+  def update_email_reminder(model, params) do
+    EmailReminder.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_email_reminder(%EmailReminder{} = model) do
+    Repo.delete(model)
+  end
+
   def check_in(qrcode) do
     ms = Repo.all(from m in Member, where: m.qrcode == ^qrcode)
     member = List.first(ms)
@@ -2510,6 +2565,206 @@ defmodule United.Settings do
 
     if member != nil do
       update_member(member, %{has_check_in: false})
+    end
+  end
+
+  def statistic(params) do
+    title = Map.get(params, "title", "loan_history_by_month")
+    months = ~S(JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC) |> String.split(" ")
+
+    case title do
+      "all_loans" ->
+        q =
+          from l in Loan,
+            select: %{has_return: l.has_return, count: count(l.has_return)},
+            group_by: [l.has_return]
+
+        Repo.all(q)
+
+      "member_join_by_month" ->
+        q =
+          from(l in Member,
+            where: l.is_approved == ^true,
+            select: %{count: count(l.id)},
+            select_merge: %{
+              month: fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)
+            },
+            group_by: [fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)]
+          )
+
+        data = Repo.all(q)
+
+        for month <- months do
+          res = Enum.filter(data, &(&1.month == month))
+
+          if res != [] do
+            List.first(res)
+          else
+            %{month: month, count: 0}
+          end
+        end
+
+      "loan_history_by_month" ->
+        q =
+          from(l in Loan,
+            where: l.has_return == ^true,
+            select: %{count: count(l.id)},
+            select_merge: %{
+              month: fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)
+            },
+            group_by: [fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)]
+          )
+
+        data = Repo.all(q)
+
+        for month <- months do
+          res = Enum.filter(data, &(&1.month == month))
+
+          if res != [] do
+            List.first(res)
+          else
+            %{month: month, count: 0}
+          end
+        end
+
+      "loan_history_by_member_month" ->
+        q =
+          from(l in Loan,
+            join: m in Member,
+            on: l.member_id == m.id,
+            where: l.has_return == ^true,
+            select: %{count: count(m.name), member: m.name},
+            select_merge: %{
+              month: fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)
+            },
+            group_by: [m.name, fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)],
+            order_by: [desc: count(m.name)]
+          )
+
+        Repo.all(q)
+
+      "loan_history_by_member" ->
+        q =
+          from(l in Loan,
+            join: m in Member,
+            on: l.member_id == m.id,
+            where: l.has_return == ^true,
+            select: %{count: count(m.name), member: m.name},
+            group_by: [m.name],
+            order_by: [desc: count(m.name)]
+          )
+
+        Repo.all(q)
+
+      "loan_history_by_category" ->
+        q =
+          from(l in Loan,
+            left_join: bi in BookInventory,
+            on: l.book_inventory_id == bi.id,
+            left_join: c in BookCategory,
+            on: c.id == bi.book_category_id,
+            where: l.has_return == ^true,
+            select: %{count: count(c.code), code: c.code, category: c.name},
+            group_by: [c.code, c.id],
+            order_by: [desc: count(c.code)]
+          )
+
+        Repo.all(q)
+
+      _ ->
+        %{}
+    end
+  end
+
+  alias United.Settings.Holiday
+
+  def list_holidays() do
+    Repo.all(Holiday) |> IO.inspect()
+  end
+
+  def get_holiday!(id) do
+    Repo.get!(Holiday, id)
+  end
+
+  def get_holiday_by_date(date) do
+    Repo.all(from h in Holiday, where: h.event_date == ^date) |> List.first()
+  end
+
+  def create_holiday(params \\ %{}) do
+    Holiday.changeset(%Holiday{}, params) |> Repo.insert()
+  end
+
+  def update_holiday(model, params) do
+    Holiday.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_holiday(%Holiday{} = model) do
+    Repo.delete(model)
+  end
+
+  alias United.Settings.Reservation
+
+  def list_reservations() do
+    Repo.all(Reservation)
+  end
+
+  def get_reservation!(id) do
+    Repo.get!(Reservation, id)
+  end
+
+  def check_reservation(%{member_id: member_id, book_inventory_id: book_inventory_id} = attrs) do
+    check =
+      Repo.all(
+        from r in Reservation,
+          where:
+            is_nil(r.loan_id) and r.member_id == ^member_id and
+              r.book_inventory_id == ^book_inventory_id
+      )
+
+    check == []
+  end
+
+  def create_reservation(params \\ %{}) do
+    Reservation.changeset(%Reservation{}, params) |> Repo.insert()
+  end
+
+  def update_reservation(model, params) do
+    Reservation.changeset(model, params) |> Repo.update()
+  end
+
+  def delete_reservation(%Reservation{} = model) do
+    Repo.delete(model)
+  end
+
+  def get_member_outstanding_reservations(member) do
+    Repo.all(
+      from r in Reservation,
+        where: is_nil(r.loan_id) and r.member_id == ^member.id,
+        preload: [book_inventory: [:book, :book_category, :book_images]]
+    )
+  end
+
+  def is_next_reserved_member(member, book_inventory) do
+    check =
+      Repo.all(
+        from r in Reservation,
+          where:
+            is_nil(r.loan_id) and
+              r.book_inventory_id == ^book_inventory.id,
+          order_by: [asc: r.id],
+          preload: [:member]
+      )
+
+    r = List.first(check)
+
+    if r != nil do
+      if r.member_id == member.id do
+        %{can_loan: true, reservation: r}
+      else
+        %{can_loan: false, member: r.member}
+      end
+    else
+      %{can_loan: true, reservation: nil}
     end
   end
 end

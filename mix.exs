@@ -20,7 +20,7 @@ defmodule United.MixProject do
   def application do
     [
       mod: {United.Application, []},
-      extra_applications: [:logger, :runtime_tools, :bamboo]
+      extra_applications: [:logger, :runtime_tools, :bamboo, :bamboo_smtp]
     ]
   end
 
@@ -35,6 +35,7 @@ defmodule United.MixProject do
     [
       {:bamboo, "~> 2.2.0"},
       {:bamboo_phoenix, "~> 1.0"},
+      {:bamboo_smtp, "~> 4.2.2"},
       {:mime, "~> 1.0"},
       {:phoenix, "~> 1.5.8"},
       {:phoenix_ecto, "~> 4.1"},

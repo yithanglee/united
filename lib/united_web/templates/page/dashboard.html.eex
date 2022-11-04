@@ -1,8 +1,31 @@
+<div id="sound"></div>
+<div class="d-none d-lg-block p-4 px-1 " style="position: absolute;right: 1vw;">
+  <div class="d-flex justify-content-end align-items-center">
+    
+    <form class="d-flex" action="javascript:void(0);">
+      <input id="tsearch" type="text" placeholder="Search" class="form-control form-control-sm">
+      <button onclick="setCurrentPage('searchAll();', 'Search')" type="submit" class="btn btn-primary my-2 my-sm-0">Search</button>
+    </form>
 
-<div id="content" style="min-height: 70vh;">
+
+      <div class="px-4 gap-3 d-flex justify-content-center align-items-center ">
+        <div id="profile_pic2" style="width: 50px;height: 50px;" class="rounded-circle text-center bg-primary d-flex align-items-center justify-content-center text-white">
+          <span style="font-size: 2em;" id="user_initial2">U</span>
+        </div>
+        <div class="d-flex flex-column justify-content-center text-center ">
+          
+          <a href="javascript:void(0);" id="cur_user2" onclick="editProfile()">Edit Profile</a>
+        </div>
+      </div>
+    
+  </div>
+
+
 </div>
+<div id="content" class="px-4" style="min-height: 80vh; margin-top: 4vh;">
+</div>
+
 <script type="text/javascript">
-  
 function listLoans() {
   console.log("loan is working")
   // call the page html
@@ -28,16 +51,17 @@ function listMembers() {
 }
 
 function searchAll() {
-    content = App.html('search.html')
+  content = App.html('search.html')
   $("#content").html(content)
 }
 
 function uploadPage() {
-    content = App.html('upload.html')
+  content = App.html('upload.html')
   $("#content").html(content)
 }
+
 function scanPage() {
-    content = App.html('scan.html')
+  content = App.html('scan.html')
   $("#content").html(content)
 }
 
@@ -53,4 +77,26 @@ function editProfile() {
 }
 
 window.init = dashboardInit();
+$(document).ready(() => {
+
+  var pdata = App.api("get_profile", { token: window.userToken })
+  if (pdata.status == "expired") {
+    App.notify("Expired!", { style: "danger" })
+    setTimeout(() => {
+
+      window.location = "/admin/logout"
+    }, 2000)
+  } else {
+    $("#profile_pic").attr('style', `background-size: cover; background-image: url('` + pdata.image_url + `'); height: 100px;width: 100px`);
+    $("#profile_pic2").attr('style', `background-size: cover; background-image: url('` + pdata.image_url + `'); height: 40px;width: 40px`);
+    $("#user_initial, #user_initial2").hide();
+    $("#cur_user, #cur_user2").html(pdata.full_name)
+  
+  }
+
+})
+$(document).on("click", "a.navi", function(event) {
+  event.preventDefault();
+  navigateTo($(this).attr("href"))
+});
 </script>

@@ -44,53 +44,47 @@
   <%= render("header.html", conn: @conn)%>
   <div class="container-fluid px-0">
     
-    <div class="row g-0">
-      <div class="col-12 col-lg-2 d-none d-lg-block"  id="profile_card">
+    <div class="d-lg-flex g-0">
+      <div class=" d-none d-lg-block"  style="min-width: 14vw;" id="profile_card">
         <%= render("sidebar.html", conn: @conn) %>
-
-
       </div>
-      <div class="col-12 col-lg-10 p-4">
-          
-             
+      <div class="flex-grow-1 p-4 px-0 pb-0 pt-1">
            <%= @inner_content %>
-        
       </div>
-        <footer class="bg-dark text-white p-4 d-flex flex-column justify-content-between" style="opacity:  0.85; min-height: 20vh;">
-      <div class="row gx-0">
-        <div class="col-12 col-lg-6">
-          <div class="fs-4" style="cursor:pointer;" onclick="showHome();">
-            Ark Library
-          </div>
-          <p class="text-muted"> KJCMC</p>
+    </div>
 
-        </div>
-        <div class="col-6 col-lg-3 p-4 p-lg-0 ">
-          Opening Hours
-          <div class="text-muted"> 
-          <div class="">
-            Monday and Wed:11.30am - 3pm
-            <br>
-            Sunday : 9.15am - 10.45am</div>
-    
-          </div>
-        </div>
-        <div class="col-6 col-lg-3 p-4 p-lg-0 ">
-          Address
-                    <div class="text-muted"> 
 
-          <div>No. 514, Jalan Tuanku Hishamuddin, <br>Sungai Chua, Selangor, 43000 Kajang</div>
-          </div>
-
-        </div>
+  <footer class="bg-dark text-white p-4 d-flex flex-column justify-content-between" style="opacity:  0.85; min-height: 20vh;">
+  <div class="row gx-0">
+    <div class="col-12 col-lg-6">
+      <div class="fs-4" style="cursor:pointer;" onclick="setCurrentPage('dashboardInit();', 'Home');">
+        Ark Library
       </div>
-      <div class="text-center text-muted">
-        2022 KJCMC
+      <p class="text-muted"> KJCMC</p>
+    </div>
+    <div class="col-6 col-lg-3 p-4 p-lg-0 ">
+      Opening Hours
+      <div class="text-muted">
+        <div class="">
+          Monday and Wed:11.30am - 3pm
+          <br>
+          Sunday : 9.15am - 10.45am</div>
       </div>
-    </footer>
-
+    </div>
+    <div class="col-6 col-lg-3 p-4 p-lg-0 ">
+      Address
+      <div class="text-muted">
+        <div>No. 514, Jalan Tuanku Hishamuddin, <br>Sungai Chua, Selangor, 43000 Kajang</div>
+      </div>
     </div>
   </div>
+  <div class="text-center text-muted">
+    2022 KJCMC
+  </div>
+</footer>
+
+  </div>
+
   <div class="modal" id="mySubModal">
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">

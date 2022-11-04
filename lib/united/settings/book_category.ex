@@ -8,6 +8,7 @@ defmodule United.Settings.BookCategory do
     field :description, :binary
     field :name, :string
     field :book_count, :integer, default: 0
+    has_many :book_inventories, United.Settings.BookInventory
     timestamps()
   end
 

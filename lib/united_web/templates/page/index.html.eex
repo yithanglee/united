@@ -71,6 +71,9 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
           <div class="btn text-center text-white" aria-label="member_loan" onclick='navigateTo("/loans")'>
             Loans
           </div>
+          <div class="btn text-center text-white" aria-label="member_loan" onclick='navigateTo("/reservations")'>
+            Reservations
+          </div>
           <div class="btn text-center text-white" aria-label="tnc" onclick='navigateTo("/tnc")'>
             Library Rules
           </div>
@@ -103,7 +106,7 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
         </div>
       </div>
     </div>
-    <section class="pb-4" id="subcontent">
+    <section class="pb-4" id="subcontent" style="min-height: 100vh;">
     </section>
   </div>
   <div aria-label="sidebar" class="user-select-none w-0 position-fixed position-lg-block min-vh-100 col-10  bg-light end-0" style="z-index: 20;">
@@ -132,6 +135,10 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
         toggleSidebar();
         navigateTo("/loans")'>
         <i class="fa fa-list me-2 text-info"></i>Loans </a>
+        <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+        toggleSidebar();
+        navigateTo("/reservations")'>
+        <i class="fa fa-list me-2 text-info"></i>Reservations </a>
       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
         navigateTo("/tnc")'>
@@ -219,6 +226,38 @@ genCode();
 setInterval(() => {
   genCode();
 }, 20000)
+
+
+function confirmReserve(bi, member_id) {
+  function success(status){
+    if (status.status == "error") {
+ App.notify("Reserved!", {type: "warning"})
+    } else {
+
+    App.notify("Done!", {type: "success"})
+    }
+  }
+  App.post("reserve_book", {book_inventory_id: bi, token: member_id}, null, success)
+}
+
+function reserveBook(bi, member_id){
+  App.modal({autoClose: false, header: "Reserve this book?", content:
+`
+<div class="d-flex flex-column align-items-center">
+  <div>You are reserving this book. When it returns, we will email you.</div>
+  <div class="btn btn-primary" onclick="
+    confirmReserve('`+bi+`', '`+member_id+`'); 
+    $('#myModal').modal('hide');">
+    Confirm
+  </div>
+</div>
+
+`
+
+
+})
+}
+
 
 function hprocessSearchForm(dom) {
   $("#autolist").removeClass("d-none")
@@ -311,6 +350,7 @@ function toggleSidebar(forceClose) {
 
 var route_names = [
   { html: "landing.html", title: "Home - ARK Library", route: "/home" },
+  { html: "member_reservations.html", title: "Reservations - ARK Library", route: "/reservations" },
   { html: "public_books.html", title: "Books - ARK Library", route: "/books" },
   { html: "public_books.html", title: "Books - ARK Library", route: "/books/:category" },
   { html: "public_books.html", title: "Books - ARK Library", route: "/books/:category/:page_no" },
@@ -322,82 +362,6 @@ var route_names = [
   { html: "tnc.html", title: "Rules - ARK Library", route: "/tnc" },
 ]
 
-function _navigateTo(route, additionalParamString) {
-  if (route == null) {
-    route = window.location.pathname
-  }
-  var current_pattern = route.split("/").filter((v, i) => {
-    return v != "";
-  })
-  console.log(current_pattern)
-
-  var match_1 = route_names.filter((route, i) => {
-    var z = route.route.split("/").filter((v, i) => {
-      return v != "";
-    })
-    return z.length == current_pattern.length;
-  })
-
-  var match_2 =
-    match_1.filter((route, i) => {
-      var z = route.route.split("/").filter((v, i) => {
-        return v != "";
-      })
-      return z[0] == current_pattern[0]
-    })
-
-  if (match_2.length > 0) {
-
-    var params = {}
-    match_2.forEach((route, i) => {
-      var z = route.route.split("/").forEach((v, ii) => {
-        if (v.includes(":")) {
-          params[v.replace(":", "")] = current_pattern[ii - 1]
-        }
-      })
-    })
-    console.log(params)
-    window.pageParams = params
-    var xParamString = ""
-    if (additionalParamString == null) {
-      xParamString = ""
-    } else {
-      xParamString = additionalParamString
-    }
-    console.log("is back?")
-
-    if (window.back) {
-      window.back = false
-    } else {
-      var stateObj = { fn: `navigateTo('` + route + `', '` + xParamString + `')`, params: params };
-      console.log("route")
-      console.log(route)
-      window.stateObj = stateObj
-      window.matchTitle = match_2[0].title
-      window.matchRoute = route
-      $("title").html(match_2[0].title)
-      history.pushState(stateObj, match_2[0].title, route);
-    }
-    var html = App.html(match_2[0].html)
-    var keys = Object.keys(match_2[0])
-    if (keys.includes("skipNav")) {
-      $("#subcontent").html(html)
-
-    } else {
-
-      var nav = App.html("blog_nav.html")
-      $("#subcontent").html(nav)
-      $("#subcontent").append(html)
-    }
-    return match_2[0]
-  } else {
-    var html = App.html("landing.html")
-    var nav = App.html("blog_nav.html")
-    $("#subcontent").html(nav)
-    $("#subcontent").append(html)
-
-  }
-}
 
 function navigateTo(route, additionalParamString) {
   if (route == null) {

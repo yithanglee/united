@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="d-lg-none d-block navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
     <a class="navbar-brand" href="./dashboard">
 
@@ -60,11 +60,19 @@
         <input id="tsearch" type="text" placeholder="Search" class="form-control form-control-sm">
         <button onclick="setCurrentPage('searchAll();', 'Search')" type="submit" class="btn btn-primary my-2 my-sm-0">Search</button>
       </form>
+
+<div class="bg-secondary" style="height: 200px;">
+  <div class="d-flex justify-content-center align-items-center pt-4 ">
+    <div id="profile_pic" style="width: 100px;height: 100px;" class="rounded-circle text-center bg-primary d-flex align-items-center justify-content-center text-white">
+      <span style="font-size: 4em;" id="user_initial">U</span>
+    </div>
+  </div>
+  <div class="d-flex flex-column justify-content-center text-center ">
+    <span class="lead text-white" id="cur_user">Famour User</span>
+    <a href="javascript:void(0);" onclick="editProfile()">Edit Profile</a>
+  </div>
+</div>
+
     </div>
   </div>
 </nav>
-<script type="text/javascript">
-$("button[data-bs-target='#navbarColor02']").on("click", () => {
-  $("#profile_card").toggleClass("d-none")
-})
-</script>

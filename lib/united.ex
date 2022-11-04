@@ -8,33 +8,55 @@ defmodule United do
   """
   # import Mogrify
   use Joken.Config
+
   def loan_reminder_check(string) do
     IO.inspect("checks #{string}")
   end
-  def loan_reminder() do
-      insert_fine = fn map ->
-        fine_amount = map.member.group.fine_amount
-        fine_days = map.member.group.fine_days
-        qty = (Date.diff(Date.utc_today(), map.return_date) / fine_days) |> Float.round()
-        map
-        |> Map.put(:late_days, Date.diff(Date.utc_today(), map.return_date))
-        |> Map.put(:fine_amount, fine_amount * qty)
-        |> IO.inspect()
-      end
-      
-      members =
+
+  # todo: add the email flags to identify if the mails were sent out..
+  def loan_reminder(_string) do
+    insert_fine = fn map ->
+      fine_amount = map.member.group.fine_amount
+      fine_days = map.member.group.fine_days
+      qty = (Date.diff(Date.utc_today(), map.return_date) / fine_days) |> Float.round()
+
+      map
+      |> Map.put(:late_days, Date.diff(Date.utc_today(), map.return_date))
+      |> Map.put(:fine_amount, fine_amount * qty)
+      |> IO.inspect()
+    end
+
+    members =
       United.Settings.all_outstanding_loans()
       |> Enum.map(&(&1 |> BluePotion.sanitize_struct() |> insert_fine.()))
-      |> Enum.filter(& &1.late_days > -7) |> Enum.group_by(& &1.member)
+      |> Enum.filter(&(&1.late_days > -7))
+      |> Enum.group_by(& &1.member)
 
+    for member <- members |> Map.keys() do
+      loans = members[member]
+      books = Enum.map(loans, &{&1.book, &1.return_date})
 
+      case United.Email.remind_email(member.email, member, books)
+           |> United.Mailer.deliver_now() do
+        {:ok, %Bamboo.Email{html_body: html_body} = resp} ->
+          IO.inspect(resp)
 
-      for member <- members |> Map.keys do
-        loans = members[member]
-        books = Enum.map(loans, & {&1.book, &1.return_date})
-        United.Email.remind_email(member.email, member, books) |> United.Mailer.deliver_now
+          United.Settings.create_email_reminder(%{
+            member_id: member.id,
+            is_sent: true,
+            content: html_body
+          })
+
+        _ ->
+          United.Settings.create_email_reminder(%{
+            member_id: member.id,
+            is_sent: false,
+            content: ""
+          })
+
+          nil
       end
-
+    end
   end
 
   def ensure_gtoken_kv_created() do
