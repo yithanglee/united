@@ -3,21 +3,22 @@ defmodule UnitedWeb.ApiController do
   import Mogrify
 
   require Logger
+  alias United.Settings
 
   def webhook_post(conn, params) do
     final =
       case params["scope"] do
         "reserve_book" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
-          user = United.Settings.get_member!(map.id) |> IO.inspect()
+          user = Settings.get_member!(map.id) |> IO.inspect()
 
           attrs = %{
             member_id: user.id,
             book_inventory_id: params["book_inventory_id"]
           }
 
-          if United.Settings.check_reservation(attrs) do
-            United.Settings.create_reservation(attrs)
+          if Settings.check_reservation(attrs) do
+            Settings.create_reservation(attrs)
             %{status: "ok"}
           else
             %{status: "error", reason: "Reserved!"} |> IO.inspect()
@@ -27,11 +28,11 @@ defmodule UnitedWeb.ApiController do
           %{status: "ok"}
 
         "remove_bi_to_tag" ->
-          United.Settings.remove_bi_to_tag(params)
+          Settings.remove_bi_to_tag(params)
           %{status: "ok"}
 
         "assign_bi_to_tag" ->
-          United.Settings.assign_bi_to_tag(params)
+          Settings.assign_bi_to_tag(params)
           %{status: "ok"}
 
         "google_signin" ->
@@ -46,7 +47,7 @@ defmodule UnitedWeb.ApiController do
 
           res = params["result"]
 
-          {:ok, member} = United.Settings.lazy_get_member(res["email"], res["name"], res["uid"])
+          {:ok, member} = Settings.lazy_get_member(res["email"], res["name"], res["uid"])
 
           token =
             Phoenix.Token.sign(
@@ -73,13 +74,13 @@ defmodule UnitedWeb.ApiController do
         "strong_search" ->
           q = params["query"]
 
-          United.Settings.strong_search_book_inventory(q)
+          Settings.strong_search_book_inventory(q)
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
         "update_member_profile" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
-          user = United.Settings.get_member!(map.id)
-          res = United.Settings.update_member(user, BluePotion.upload_file(params["Member"]))
+          user = Settings.get_member!(map.id)
+          res = Settings.update_member(user, BluePotion.upload_file(params["Member"]))
 
           case res do
             {:ok, u} ->
@@ -92,8 +93,8 @@ defmodule UnitedWeb.ApiController do
 
         "update_profile" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
-          user = United.Settings.get_user!(map.id)
-          res = United.Settings.update_user(user, BluePotion.upload_file(params["User"]))
+          user = Settings.get_user!(map.id)
+          res = Settings.update_user(user, BluePotion.upload_file(params["User"]))
 
           case res do
             {:ok, u} ->
@@ -191,11 +192,10 @@ defmodule UnitedWeb.ApiController do
                     )
                     |> Enum.into(%{})
                   end
-                  |> IO.inspect()
             end
 
-          {:ok, bu} = United.Settings.create_book_upload()
-          United.Settings.upload_books(data, bu)
+          {:ok, bu} = Settings.create_book_upload()
+          Settings.upload_books(data, bu)
 
           # keep a copy of the upload data else modify the uploaded data and write back to csv file for user to modify
           %{status: "ok"}
@@ -218,25 +218,25 @@ defmodule UnitedWeb.ApiController do
           } = params
 
           bi =
-            United.Settings.search_book_inventory(
+            Settings.search_book_inventory(
               %{"barcode" => barcode |> String.replace(" ", "")},
               true
             )
             |> List.first()
             |> IO.inspect()
 
-          m = United.Settings.search_member(%{"member_code" => member_code}, true) |> List.first()
+          m = Settings.search_member(%{"member_code" => member_code}, true) |> List.first()
 
           # check if member is already approved...
           if m.is_approved && bi != nil do
-            if United.Settings.book_can_loan(bi.id) |> Enum.count() > 0 do
+            if Settings.book_can_loan(bi.id) |> Enum.count() > 0 do
               %{status: "error", reason: "Book already loaned."}
             else
-              reservation_data = United.Settings.is_next_reserved_member(m, bi)
+              reservation_data = Settings.is_next_reserved_member(m, bi)
 
               if reservation_data.can_loan do
                 if bi != nil && m != nil do
-                  case United.Settings.create_loan(%{
+                  case Settings.create_loan(%{
                          reservation: reservation_data.reservation,
                          loan_date: loan_date,
                          return_date: return_date,
@@ -269,11 +269,11 @@ defmodule UnitedWeb.ApiController do
           end
 
         "search_book" ->
-          United.Settings.search_book_inventory(params, true)
+          Settings.search_book_inventory(params, true)
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
         "search_member" ->
-          United.Settings.search_member(params, true)
+          Settings.search_member(params, true)
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
         _ ->
@@ -288,20 +288,54 @@ defmodule UnitedWeb.ApiController do
   def webhook(conn, params) do
     final =
       case params["scope"] do
+        "send_outstanding_emails" ->
+          Settings.send_outstanding_emails()
+          %{status: "received"}
+
+        "is_next_reserved_member" ->
+          %{
+            "barcode" => barcode,
+            "member_code" => member_code,
+            "scope" => _scope
+          } = params
+
+          bi =
+            Settings.search_book_inventory(
+              %{"barcode" => barcode |> String.replace(" ", "")},
+              true
+            )
+            |> List.first()
+            |> IO.inspect()
+
+          m = Settings.search_member(%{"member_code" => member_code}, true) |> List.first()
+
+          res = Settings.is_next_reserved_member(m, bi)
+
+          case res do
+            %{can_loan: can_loan, member: member} ->
+              %{can_loan: can_loan, member: member |> BluePotion.sanitize_struct()}
+
+            %{can_loan: true, reservation: reservation} ->
+              %{can_loan: true, reservation: reservation |> BluePotion.sanitize_struct()}
+
+            _ ->
+              %{can_loan: false, reservation: nil}
+          end
+
         "check_holiday" ->
           res =
-            United.Settings.get_holiday_by_date(params["event_date"])
+            Settings.get_holiday_by_date(params["event_date"])
             |> BluePotion.sanitize_struct()
 
           %{status: "ok", holiday: res}
 
         "statistic" ->
-          United.Settings.statistic(params)
+          Settings.statistic(params)
 
         "has_check_in" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
 
-          member = United.Settings.get_member!(map.id)
+          member = Settings.get_member!(map.id)
 
           if member.has_check_in do
             %{status: "ok"}
@@ -310,31 +344,31 @@ defmodule UnitedWeb.ApiController do
           end
 
         "check_out_member" ->
-          United.Settings.check_out(params["code"])
+          Settings.check_out(params["code"])
           %{status: "ok"}
 
         "check_in_member" ->
-          United.Settings.check_in(params["code"])
+          Settings.check_in(params["code"])
           %{status: "ok"}
 
         "get_check_in" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
 
-          member = United.Settings.get_member!(map.id)
+          member = Settings.get_member!(map.id)
 
           length = 10
           code = :crypto.strong_rand_bytes(length) |> Base.encode64() |> binary_part(0, length)
           # everytime request, keep update the member;
 
-          United.Settings.update_member(member, %{qrcode: code})
+          Settings.update_member(member, %{qrcode: code})
           code
 
         "page_section" ->
-          United.Settings.get_page_section_name(params["section"])
+          Settings.get_page_section_name(params["section"])
           |> BluePotion.s_to_map()
 
         "book_data" ->
-          bi = United.Settings.book_data(params)
+          bi = Settings.book_data(params)
 
           # get all the book categories book
           book_category = bi.book_category
@@ -344,7 +378,7 @@ defmodule UnitedWeb.ApiController do
             |> United.Repo.preload([:book_inventories])
             |> Map.get(:book_inventories)
 
-          outstanding_loans = United.Settings.book_can_loan(bi.id)
+          outstanding_loans = Settings.book_can_loan(bi.id)
 
           return_date =
             if outstanding_loans != [] do
@@ -360,37 +394,37 @@ defmodule UnitedWeb.ApiController do
           |> Map.put(:return_date, return_date)
 
         "get_tag_books" ->
-          United.Settings.get_tag_books(params)
+          Settings.get_tag_books(params)
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
         "reassign_categories" ->
-          United.Settings.repopulate_categories()
+          Settings.repopulate_categories()
           %{status: "ok"}
 
         "show_book" ->
-          United.Settings.get_book_by_isbn(params["isbn"])
+          Settings.get_book_by_isbn(params["isbn"])
 
         "book_intro" ->
-          United.Settings.get_intro_books()
+          Settings.get_intro_books()
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
         # |> Enum.take(1)
 
         "get_token" ->
           # for member only
-          m = United.Settings.get_member_by_email(params["email"])
+          m = Settings.get_member_by_email(params["email"])
           # |> BluePotion.s_to_map() 
 
-          United.Settings.member_token(m.id)
+          Settings.member_token(m.id)
 
         "get_member_profile" ->
           {:ok, map} = Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"])
           # put the reserve book details...
 
-          member = United.Settings.get_member!(map.id)
+          member = Settings.get_member!(map.id)
 
           reservations =
-            United.Settings.get_member_outstanding_reservations(member)
+            Settings.get_member_outstanding_reservations(member)
             |> Enum.map(&(&1 |> BluePotion.sanitize_struct()))
 
           member
@@ -402,7 +436,7 @@ defmodule UnitedWeb.ApiController do
         "get_profile" ->
           case Phoenix.Token.verify(UnitedWeb.Endpoint, "signature", params["token"]) do
             {:ok, map} ->
-              United.Settings.get_user!(map.id)
+              Settings.get_user!(map.id)
               |> BluePotion.s_to_map()
               |> Map.delete(:id)
               |> Map.put(:crypted_password, "")
@@ -412,10 +446,10 @@ defmodule UnitedWeb.ApiController do
           end
 
         "extend_book" ->
-          l = United.Settings.get_loan!(params["loan_id"])
+          l = Settings.get_loan!(params["loan_id"])
 
           if l.has_extended do
-            # United.Settings.extend_book(params["loan_id"])
+            # Settings.extend_book(params["loan_id"])
             %{status: "error", reason: "Book already extended, kindly return this book when due."}
           else
             if Date.compare(Date.utc_today(), l.return_date) == :gt do
@@ -424,17 +458,17 @@ defmodule UnitedWeb.ApiController do
                 reason: "Book is beyond extension, kindly return this book when due."
               }
             else
-              United.Settings.extend_book(params["loan_id"])
+              Settings.extend_book(params["loan_id"])
               %{status: "received"}
             end
           end
 
         "return_book" ->
-          United.Settings.return_book(params["loan_id"])
+          Settings.return_book(params["loan_id"])
           %{status: "received"}
 
         "book_can_loan" ->
-          United.Settings.book_can_loan(params["book_inventory_id"])
+          Settings.book_can_loan(params["book_inventory_id"])
           |> Enum.map(&(&1 |> BluePotion.s_to_map()))
 
         "all_outstanding_loans" ->
@@ -450,7 +484,7 @@ defmodule UnitedWeb.ApiController do
             |> IO.inspect()
           end
 
-          United.Settings.all_outstanding_loans()
+          Settings.all_outstanding_loans()
           |> Enum.map(&(&1 |> BluePotion.sanitize_struct() |> insert_fine.()))
 
         "member_outstanding_loans" ->
@@ -466,7 +500,7 @@ defmodule UnitedWeb.ApiController do
             |> IO.inspect()
           end
 
-          United.Settings.member_outstanding_loans(params["member_id"])
+          Settings.member_outstanding_loans(params["member_id"])
           |> Enum.map(&(&1 |> BluePotion.sanitize_struct() |> insert_fine.()))
 
         "gen_inputs" ->
@@ -600,7 +634,7 @@ defmodule UnitedWeb.ApiController do
         params
         |> Map.put(
           "parent_id",
-          United.Settings.decode_token(parent_id).id
+          Settings.decode_token(parent_id).id
         )
       else
         params
@@ -635,7 +669,7 @@ defmodule UnitedWeb.ApiController do
         params
         |> Map.put(
           "corporate_account_id",
-          United.Settings.decode_token(corporate_account_id).id
+          Settings.decode_token(corporate_account_id).id
         )
       else
         params
@@ -653,18 +687,39 @@ defmodule UnitedWeb.ApiController do
       if additional_join_statements == nil do
         ""
       else
-        joins = additional_join_statements |> Jason.decode!()
+        joins = additional_join_statements |> Poison.decode!()
 
         for join <- joins do
           key = Map.keys(join) |> List.first()
           value = join |> Map.get(key)
-          module = Module.concat(["United", "Settings", key])
 
-          "|> join(:left, [a], b in #{module}, on: a.#{value} == b.id)"
+          config = Application.get_env(:blue_potion, :contexts)
+
+          mods =
+            if config == nil do
+              ["Settings", "Secretary"]
+            else
+              config
+            end
+
+          struct =
+            for mod <- mods do
+              Module.concat([Application.get_env(:blue_potion, :otp_app), mod, key])
+            end
+            |> IO.inspect()
+            |> Enum.filter(&(elem(Code.ensure_compiled(&1), 0) == :module))
+            |> IO.inspect()
+            |> List.first()
+
+          # "|> join(:left, [a], b in #{struct}, on: a.#{value} == b.id)"
+
+          "|> join(:left, [a], b in assoc(a, :#{key}))"
         end
         |> Enum.join("")
       end
       |> IO.inspect()
+
+    IO.puts("search query")
 
     additional_search_queries =
       if additional_search_queries == nil do
@@ -710,6 +765,7 @@ defmodule UnitedWeb.ApiController do
                 |> where([a], ilike(a.#{item}, ^"%#{ss}%"))
                 """
               end
+              |> IO.inspect()
             end
           end
         end
@@ -734,7 +790,7 @@ defmodule UnitedWeb.ApiController do
         end
 
         preloads
-        |> Jason.decode!()
+        |> Poison.decode!()
         |> IO.inspect()
         |> Enum.map(&(&1 |> convert_to_atom.()))
 
@@ -742,10 +798,30 @@ defmodule UnitedWeb.ApiController do
       end
       |> List.flatten()
 
+    config = Application.get_env(:blue_potion, :contexts)
+
+    mods =
+      if config == nil do
+        ["Settings", "Secretary"]
+      else
+        config
+      end
+
+    struct =
+      for mod <- mods do
+        Module.concat([Application.get_env(:blue_potion, :otp_app), mod, model])
+      end
+      |> IO.inspect()
+      |> Enum.filter(&(elem(Code.ensure_compiled(&1), 0) == :module))
+      |> IO.inspect()
+      |> List.first()
+
+    IO.inspect(struct)
+
     json =
       BluePotion.post_process_datatable(
         params,
-        Module.concat(["United", "Settings", model]),
+        struct,
         additional_join_statements,
         additional_search_queries,
         preloads

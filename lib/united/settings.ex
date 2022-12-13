@@ -1742,94 +1742,101 @@ defmodule United.Settings do
   def create_book_inventory(params \\ %{}) do
     # rewrite the code here
 
-    IO.inspect(params)
+    res =
+      if "update_assoc" in Map.keys(params) do
+        assocs = Map.keys(params["update_assoc"])
+        cols = BluePotion.test_module("BookInventory") |> Map.keys()
 
-    if "update_assoc" in Map.keys(params) do
-      assocs = Map.keys(params["update_assoc"])
-      cols = BluePotion.test_module("BookInventory") |> Map.keys()
+        p = BluePotion.string_to_atom(params, Map.keys(params)) |> Map.delete(:id)
 
-      p = BluePotion.string_to_atom(params, Map.keys(params)) |> Map.delete(:id)
+        data = Ecto.Changeset.cast(%BookInventory{}, p, cols)
 
-      data = Ecto.Changeset.cast(%BookInventory{}, p, cols)
-
-      {:ok, res} =
-        Multi.new()
-        |> Multi.run(:book_inventory, fn _repo, %{} ->
-          Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
-          |> Repo.insert()
-        end)
-        |> Multi.run(:author, fn _repo, %{book_inventory: book_inventory} ->
-          author = Repo.get_by(Author, name: params["author"]["name"])
-
-          author =
-            if author == nil do
-              {:ok, author} = create_author(%{name: params["author"]["name"]})
-              author
-            else
-              author
-            end
-
-          Book.update_changeset(book_inventory.book, %{author_id: author.id})
-          |> Repo.update()
-        end)
-        |> Multi.run(:publisher, fn _repo, %{book_inventory: book_inventory} ->
-          publisher = Repo.get_by(Publisher, name: params["publisher"]["name"])
-
-          publisher =
-            if publisher == nil do
-              {:ok, publisher} = create_publisher(%{name: params["publisher"]["name"]})
-              publisher
-            else
-              publisher
-            end
-
-          Book.update_changeset(book_inventory.book, %{publisher_id: publisher.id})
-          |> Repo.update()
-        end)
-        |> Multi.run(:book, fn _repo, %{book_inventory: book_inventory} ->
-          # Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
-          # |> Repo.update()
-
-          if "book_image.img_url" in Map.keys(params) do
-            filename =
-              params["book_image.img_url"]
-              |> String.replace("/images/uploads", "")
-
-            United.s3_large_upload(filename)
-
-            Repo.delete_all(
-              from i in BookImage,
-                where: i.book_id == ^book_inventory.book.id and is_nil(i.group)
-            )
-
-            Repo.delete_all(
-              from i in BookImage,
-                where: i.book_id == ^book_inventory.book.id and i.group == ^"cover"
-            )
-
-            Ecto.Changeset.cast(
-              %BookImage{},
-              %{
-                group: "cover",
-                book_id: book_inventory.book.id,
-                img_url: "https://ap-south-1.linodeobjects.com/damien-bucket#{filename}"
-              },
-              [:book_id, :img_url, :group]
-            )
+        {:ok, res} =
+          Multi.new()
+          |> Multi.run(:book_inventory, fn _repo, %{} ->
+            Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
             |> Repo.insert()
-          else
-            {:ok, nil}
-          end
-        end)
-        |> Repo.transaction()
+          end)
+          |> Multi.run(:author, fn _repo, %{book_inventory: book_inventory} ->
+            author =
+              Repo.all(from a in Author, where: a.name == ^params["author"]["name"])
+              |> List.first()
 
-      {:ok, res.book_inventory}
-    else
-      BookInventory.changeset(%BookInventory{}, params)
-      |> Ecto.Changeset.cast_assoc(:book)
-      |> Ecto.Changeset.cast_assoc(:book_category)
-      |> Repo.insert()
-    end
+            author =
+              if author == nil do
+                {:ok, author} = create_author(%{name: params["author"]["name"]})
+                author
+              else
+                author
+              end
+
+            Book.update_changeset(book_inventory.book, %{author_id: author.id})
+            |> Repo.update()
+          end)
+          |> Multi.run(:publisher, fn _repo, %{book_inventory: book_inventory} ->
+            publisher =
+              Repo.all(from p in Publisher, where: p.name == ^params["publisher"]["name"])
+              |> List.first()
+
+            publisher =
+              if publisher == nil do
+                {:ok, publisher} = create_publisher(%{name: params["publisher"]["name"]})
+                publisher
+              else
+                publisher
+              end
+
+            Book.update_changeset(book_inventory.book, %{publisher_id: publisher.id})
+            |> Repo.update()
+          end)
+          |> Multi.run(:book, fn _repo, %{book_inventory: book_inventory} ->
+            # Enum.reduce(assocs, data, fn x, acc -> cg_put_assoc(x, acc, params) end)
+            # |> Repo.update()
+
+            if "book_image.img_url" in Map.keys(params) do
+              filename =
+                params["book_image.img_url"]
+                |> String.replace("/images/uploads", "")
+
+              United.s3_large_upload(filename)
+
+              Repo.delete_all(
+                from i in BookImage,
+                  where: i.book_id == ^book_inventory.book.id and is_nil(i.group)
+              )
+
+              Repo.delete_all(
+                from i in BookImage,
+                  where: i.book_id == ^book_inventory.book.id and i.group == ^"cover"
+              )
+
+              Ecto.Changeset.cast(
+                %BookImage{},
+                %{
+                  group: "cover",
+                  book_id: book_inventory.book.id,
+                  img_url: "https://ap-south-1.linodeobjects.com/damien-bucket#{filename}"
+                },
+                [:book_id, :img_url, :group]
+              )
+              |> Repo.insert()
+            else
+              {:ok, nil}
+            end
+          end)
+          |> Repo.transaction()
+
+        {:ok, res.book_inventory}
+      else
+        BookInventory.changeset(%BookInventory{}, params)
+        |> Ecto.Changeset.cast_assoc(:book)
+        |> Ecto.Changeset.cast_assoc(:book_category)
+        |> Repo.insert()
+      end
+
+    United.Settings.repopulate_categories()
+
+    res
   end
 
   def update_book_inventory(model, params) do
@@ -2765,6 +2772,35 @@ defmodule United.Settings do
       end
     else
       %{can_loan: true, reservation: nil}
+    end
+  end
+
+  def send_outstanding_emails() do
+    outstanding_reminders =
+      Repo.all(
+        from er in EmailReminder,
+          where: er.status == ^"pending" and er.is_sent == ^false,
+          preload: [:member]
+      )
+
+    for outstanding_reminder <- outstanding_reminders do
+      case United.Email.custom_email(
+             outstanding_reminder.member.email,
+             "Notice",
+             outstanding_reminder.content
+           )
+           |> United.Mailer.deliver_now() do
+        {:ok, %Bamboo.Email{html_body: html_body} = resp} ->
+          nil
+
+          United.Settings.update_email_reminder(outstanding_reminder, %{
+            is_sent: true,
+            status: "sent"
+          })
+
+        _ ->
+          nil
+      end
     end
   end
 end

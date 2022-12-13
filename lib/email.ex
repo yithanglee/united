@@ -8,6 +8,15 @@ defmodule United.Email do
 
   use Bamboo.Phoenix, view: UnitedWeb.EmailView
 
+  def custom_email(user_email, subject, html) do
+    # Build your default email then customize for welcome
+    base_email()
+    |> to(user_email)
+    |> subject("Ark Library - #{subject}")
+    |> put_header("Reply-To", "library@kajangcmc.org")
+    |> render("custom_email.html", html: html)
+  end
+
   def remind_email(user_email, member, books) do
     # Build your default email then customize for welcome
     base_email()

@@ -38,6 +38,8 @@
       socket.connect();
     
   </script>
+    <script type="text/javascript" src="/js/routes.js"></script>
+     <link rel="manifest" href="/html/manifest.json">
 </head>
 
 <body>
@@ -125,7 +127,7 @@
     <div></div>
   </div>
 </div>
-  <script type="text/javascript" src="/js/routes.js"></script>
+
 </body>
 
 </html>

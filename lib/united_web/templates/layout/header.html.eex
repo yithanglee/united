@@ -1,11 +1,7 @@
 <nav class="d-lg-none d-block navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
     <a class="navbar-brand" href="./dashboard">
-
-  
       ARK Library
-
-
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -18,20 +14,19 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('listLoans();', 'Loans')">Loans</a>
+          <a class="navi nav-link" href="/admin/loans">Loans</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('listBooks();', 'Books')">Books</a>
+          <a class="navi nav-link" href="/admin/books">Books</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('listMembers();', 'Members')">Members</a>
+          <a class="navi nav-link" href="/admin/members">Members</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('uploadPage();', 'Upload')">Upload</a>
+          <a class="navi nav-link" href="/admin/uploads">Upload</a>
         </li>
-
         <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);" onclick="setCurrentPage('scanPage();', 'Scan')">Scan</a>
+          <a class="navi nav-link" href="/admin/scan">Scan</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="javascript:void(0);" onclick="checkInMember()">Check In</a>
@@ -58,21 +53,19 @@
       </ul>
       <form class="d-flex" action="javascript:void(0);">
         <input id="tsearch" type="text" placeholder="Search" class="form-control form-control-sm">
-        <button onclick="setCurrentPage('searchAll();', 'Search')" type="submit" class="btn btn-primary my-2 my-sm-0">Search</button>
+        <button onclick="navigateTo('/admin/search')" type="submit" class="btn btn-primary my-2 my-sm-0">Search</button>
       </form>
-
-<div class="bg-secondary" style="height: 200px;">
-  <div class="d-flex justify-content-center align-items-center pt-4 ">
-    <div id="profile_pic" style="width: 100px;height: 100px;" class="rounded-circle text-center bg-primary d-flex align-items-center justify-content-center text-white">
-      <span style="font-size: 4em;" id="user_initial">U</span>
-    </div>
-  </div>
-  <div class="d-flex flex-column justify-content-center text-center ">
-    <span class="lead text-white" id="cur_user">Famour User</span>
-    <a href="javascript:void(0);" onclick="editProfile()">Edit Profile</a>
-  </div>
-</div>
-
+      <div class="bg-secondary" style="height: 200px;">
+        <div class="d-flex justify-content-center align-items-center pt-4 ">
+          <div id="profile_pic" style="width: 100px;height: 100px;" class="rounded-circle text-center bg-primary d-flex align-items-center justify-content-center text-white">
+            <span style="font-size: 4em;" id="user_initial">U</span>
+          </div>
+        </div>
+        <div class="d-flex flex-column justify-content-center text-center ">
+          <span class="lead text-white" id="cur_user">Famour User</span>
+          <a href="/admin/profile" class="navi">Edit Profile</a>
+        </div>
+      </div>
     </div>
   </div>
 </nav>

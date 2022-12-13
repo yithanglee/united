@@ -1,23 +1,25 @@
+<script src="/js/qr-scanner.umd.min.js"></script>
+<script type="text/javascript">
+QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
+</script>
+<script src="/js/peerjs.min.js"></script>
 <div id="sound"></div>
 <div class="d-none d-lg-block p-4 px-1 " style="position: absolute;right: 1vw;">
   <div class="d-flex justify-content-end align-items-center">
     
     <form class="d-flex" action="javascript:void(0);">
-      <input id="tsearch" type="text" placeholder="Search" class="form-control form-control-sm">
-      <button onclick="setCurrentPage('searchAll();', 'Search')" type="submit" class="btn btn-primary my-2 my-sm-0">Search</button>
+      <input id="tsearch2" type="text" placeholder="Search" class="form-control form-control-sm">
+      <button onclick="navigateTo('/admin/search')" type="submit" class="btn btn-primary my-2 my-sm-0">Search</button>
     </form>
-
-
       <div class="px-4 gap-3 d-flex justify-content-center align-items-center ">
         <div id="profile_pic2" style="width: 50px;height: 50px;" class="rounded-circle text-center bg-primary d-flex align-items-center justify-content-center text-white">
           <span style="font-size: 2em;" id="user_initial2">U</span>
         </div>
         <div class="d-flex flex-column justify-content-center text-center ">
           
-          <a href="javascript:void(0);" id="cur_user2" onclick="editProfile()">Edit Profile</a>
+          <a href="/admin/profile" class="navi" id="cur_user2" >Edit Profile</a>
         </div>
       </div>
-    
   </div>
 
 
@@ -26,57 +28,109 @@
 </div>
 
 <script type="text/javascript">
-function listLoans() {
-  console.log("loan is working")
-  // call the page html
-  // loads its js there.
-  content = App.html('loans.html')
-  $("#content").html(content)
+function navigateTo(route, additionalParamString) {
+  if (route == null) {
+    route = window.location.pathname
+  }
+  var current_pattern = route.split("/").filter((v, i) => {
+    return v != "";
+  })
+  console.log(current_pattern)
+
+  var match_1 = route_names.filter((rroute, i) => {
+    var z = rroute.route.split("/").filter((v, i) => {
+      return v != "";
+    })
+    console.log(z[z.length - 1])
+
+    if (z[z.length - 1].includes(":")) {
+      return z.length == current_pattern.length
+    } else {
+
+      return z.length == current_pattern.length && z[z.length - 1] == current_pattern[z.length - 1];
+    }
+  })
+
+  var match_2 =
+    match_1.filter((rroute, i) => {
+      console.log(rroute)
+      var z = rroute.route.split("/").filter((v, i) => {
+        return v != "";
+      })
+      return z[0] == current_pattern[0]
+    })
+
+  if (match_2.length > 0) {
+
+    var params = {}
+    match_2.forEach((rroute, i) => {
+      var z = rroute.route.split("/").forEach((v, ii) => {
+        if (v.includes(":")) {
+          params[v.replace(":", "")] = current_pattern[ii - 1]
+        }
+      })
+    })
+    console.log("params here")
+    console.log(params)
+    window.pageParams = params
+    var xParamString = ""
+    if (additionalParamString == null) {
+      xParamString = ""
+    } else {
+      xParamString = additionalParamString
+    }
+
+    if (window.back) {
+      window.back = false
+    } else {
+      var stateObj = { fn: `navigateTo('` + route + `', '` + xParamString + `')`, params: params };
+      console.log("route")
+      console.log(route)
+      window.stateObj = stateObj
+      window.matchTitle = match_2[0].title
+      window.matchRoute = route
+
+
+      if (Object.keys(params).includes("title")) {
+        $("title").html(params.title)
+        history.pushState(stateObj, params.title, route);
+      } else {
+        $("title").html(match_2[0].title)
+        history.pushState(stateObj, match_2[0].title, route);
+      }
+    }
+    var html = App.html(match_2[0].html)
+    var keys = Object.keys(match_2[0])
+    if (keys.includes("skipNav")) {
+      $("#content").html(html)
+
+    } else {
+      var nav = App.html("nav.html")
+
+      if (keys.includes("customNav")) {
+        var nav = App.html(match_2[0].customNav)
+      }
+
+      $("#content").html(nav)
+      $("#content").append(html)
+    }
+    return match_2[0]
+  } else {
+    var html = App.html("dashboard.html")
+    // var nav = App.html("blog_nav.html")
+    // $("#subcontent").html(nav)
+    $("#content").html(html)
+
+  }
 }
 
-function listBooks() {
-  console.log("book is working")
-  // call the page html
-  // loads its js there.
-  content = App.html('books.html')
-  $("#content").html(content)
+function updatePageParams(obj) {
+  window.stateObj = obj
+  history.pushState(obj, obj.title, obj.route);
 }
+navigateTo();
 
-function listMembers() {
-  console.log("member is working")
-  // call the page html
-  // loads its js there.
-  content = App.html('members.html')
-  $("#content").html(content)
-}
 
-function searchAll() {
-  content = App.html('search.html')
-  $("#content").html(content)
-}
-
-function uploadPage() {
-  content = App.html('upload.html')
-  $("#content").html(content)
-}
-
-function scanPage() {
-  content = App.html('scan.html')
-  $("#content").html(content)
-}
-
-function dashboardInit() {
-  console.log("init is working")
-  content = App.html('dashboard.html')
-  $("#content").html(content)
-}
-
-function editProfile() {
-  content = App.html('profile.html')
-  $("#content").html(content)
-}
-
-window.init = dashboardInit();
 $(document).ready(() => {
 
   var pdata = App.api("get_profile", { token: window.userToken })

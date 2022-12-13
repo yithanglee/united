@@ -231,10 +231,11 @@ setInterval(() => {
 function confirmReserve(bi, member_id) {
   function success(status){
     if (status.status == "error") {
- App.notify("Reserved!", {type: "warning"})
+       App.notify("Reserved!", {type: "warning"})
     } else {
+      checkLoginUser()
+      App.notify("Done!", {type: "success"})
 
-    App.notify("Done!", {type: "success"})
     }
   }
   App.post("reserve_book", {book_inventory_id: bi, token: member_id}, null, success)

@@ -1,9 +1,11 @@
 defmodule UnitedWeb.Router do
   use UnitedWeb, :router
+
   if Mix.env() == :dev do
     # If using Phoenix
     forward "/sent_emails", Bamboo.SentEmailViewerPlug
   end
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -39,18 +41,14 @@ defmodule UnitedWeb.Router do
 
   scope "/admin", UnitedWeb do
     pipe_through :browser
+
     get("/dashboard", PageController, :dashboard)
     get("/login", LoginController, :index)
     get("/register", LoginController, :register)
     post("/register", LoginController, :create)
     post("/authenticate", LoginController, :authenticate)
     get("/logout", LoginController, :logout)
-    resources "/users", UserController
-    resources "/blogs", BlogController
-
-    resources "/tags", TagController
-
-    resources "/stored_medias", StoredMediaController
+    get("/*path", PageController, :dashboard)
   end
 
   scope "/api", UnitedWeb do
