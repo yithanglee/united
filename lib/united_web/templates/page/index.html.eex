@@ -74,6 +74,10 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
           <div class="btn text-center text-white" aria-label="member_loan" onclick='navigateTo("/reservations")'>
             Reservations
           </div>
+          <div class=" position-relative btn text-center text-white" aria-label="member_loan" onclick='navigateTo("/current_event")'>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning">1</span>
+            <span>读书会</span>
+          </div>
           <div class="btn text-center text-white" aria-label="tnc" onclick='navigateTo("/tnc")'>
             Library Rules
           </div>
@@ -120,6 +124,10 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
         toggleSidebar();
         navigateTo("/home")'>
         <i class="fa fa-home me-2 text-primary"></i>Home </a>
+        <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+        toggleSidebar();
+        navigateTo("/current_event")'>
+        <i class="fa fa-info me-2 text-primary"></i>读书会 </a>
       <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
         navigateTo("/books")'>
@@ -135,7 +143,7 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
         toggleSidebar();
         navigateTo("/loans")'>
         <i class="fa fa-list me-2 text-info"></i>Loans </a>
-        <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
+      <a class="list-group-item list-group-item-action" href="javascript:void(0);" onclick='
         toggleSidebar();
         navigateTo("/reservations")'>
         <i class="fa fa-list me-2 text-info"></i>Reservations </a>
@@ -229,25 +237,27 @@ setInterval(() => {
 
 
 function confirmReserve(bi, member_id) {
-  function success(status){
+  function success(status) {
     if (status.status == "error") {
-       App.notify("Reserved!", {type: "warning"})
+      App.notify("Reserved!", { type: "warning" })
     } else {
       checkLoginUser()
-      App.notify("Done!", {type: "success"})
+      App.notify("Done!", { type: "success" })
 
     }
   }
-  App.post("reserve_book", {book_inventory_id: bi, token: member_id}, null, success)
+  App.post("reserve_book", { book_inventory_id: bi, token: member_id }, null, success)
 }
 
-function reserveBook(bi, member_id){
-  App.modal({autoClose: false, header: "Reserve this book?", content:
-`
+function reserveBook(bi, member_id) {
+  App.modal({
+    autoClose: false,
+    header: "Reserve this book?",
+    content: `
 <div class="d-flex flex-column align-items-center">
   <div>You are reserving this book. When it returns, we will email you.</div>
   <div class="btn btn-primary" onclick="
-    confirmReserve('`+bi+`', '`+member_id+`'); 
+    confirmReserve('` + bi + `', '` + member_id + `'); 
     $('#myModal').modal('hide');">
     Confirm
   </div>
@@ -256,7 +266,7 @@ function reserveBook(bi, member_id){
 `
 
 
-})
+  })
 }
 
 
@@ -361,6 +371,7 @@ var route_names = [
   { html: "account.html", title: "Account - ARK Library", route: "/account" },
   { html: "book_detail.html", title: "Detail - ARK Library", route: "/book/:code" },
   { html: "tnc.html", title: "Rules - ARK Library", route: "/tnc" },
+  { html: "current_event.html", title: "Current Event - ARK Library", route: "/current_event" },
 ]
 
 

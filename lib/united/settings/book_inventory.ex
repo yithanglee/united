@@ -11,6 +11,7 @@ defmodule United.Settings.BookInventory do
     has_one(:publisher, through: [:book, :publisher])
     field :book_upload_id, :integer
     has_many(:book_images, through: [:book, :book_images])
+    has_many(:loans, United.Settings.Loan)
     field :code, :string
 
     timestamps()

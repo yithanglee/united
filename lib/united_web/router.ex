@@ -90,7 +90,6 @@ defmodule UnitedWeb.Router do
 
   scope "/", UnitedWeb do
     pipe_through [:browser, :frontend]
-
     get "/*path", PageController, :index
   end
 end

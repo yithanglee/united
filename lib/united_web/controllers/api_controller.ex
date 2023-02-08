@@ -692,6 +692,7 @@ defmodule UnitedWeb.ApiController do
         for join <- joins do
           key = Map.keys(join) |> List.first()
           value = join |> Map.get(key)
+          # module = Module.concat(["Church", "Settings", key])
 
           config = Application.get_env(:blue_potion, :contexts)
 
@@ -711,8 +712,6 @@ defmodule UnitedWeb.ApiController do
             |> IO.inspect()
             |> List.first()
 
-          # "|> join(:left, [a], b in #{struct}, on: a.#{value} == b.id)"
-
           "|> join(:left, [a], b in assoc(a, :#{key}))"
         end
         |> Enum.join("")
@@ -725,50 +724,137 @@ defmodule UnitedWeb.ApiController do
       if additional_search_queries == nil do
         ""
       else
-        # replace the data inside
-        # its a list [column1, column2]
         columns = additional_search_queries |> String.split(",")
 
         for {item, index} <- columns |> Enum.with_index() do
-          if item |> String.contains?("!=") do
-            [i, val] = item |> String.split("!=")
+          cond do
+            item |> String.contains?("!=") ->
+              [i, val] = item |> String.split("!=")
 
-            """
-            |> where([a], a.#{i} != "#{val}") 
-            """
-          else
-            ss = params["search"]["value"]
+              """
+              |> where([a,b,c,d], a.#{i} != "#{val}") 
+              """
 
-            if index > 0 do
-              if item |> String.contains?("b.") do
-                item = item |> String.replace("b.", "")
+            item |> String.contains?("_id^") ->
+              item = item |> String.replace("^", "")
+              [_prefix, i] = item |> String.split(".")
+              ss = params["search"]["value"]
 
-                # if possible, here need to add back the previous and statements
+              if ss != "" do
+                case Integer.parse(ss) do
+                  {ss, _} ->
+                    """
+                    |> where([a,b,c,d], a.#{i} == ^"#{ss}") 
+                    """
 
+                  _ ->
+                    """
+                    |> where([a,b,c,d], a.#{i} == ^"#{ss}") 
+                    """
+                end
+              end
+
+            item |> String.contains?("^") ->
+              item = item |> String.replace("^", "")
+              [prefix, i] = item |> String.split(".")
+              ss = params["search"]["value"]
+
+              if ss != "" do
                 """
-                |> or_where([a, b], ilike(b.#{item}, ^"%#{ss}%"))
-                """
-              else
-                """
-                |> or_where([a], ilike(a.#{item}, ^"%#{ss}%"))
+                |> where([a,b,c,d],  ilike(#{prefix}.#{i}, ^"%#{ss}%") ) 
                 """
               end
-            else
-              if item |> String.contains?("b.") do
-                item = item |> String.replace("b.", "")
 
+            true ->
+              ss = params["search"]["value"] |> IO.inspect()
+              items = String.split(item, "|")
+
+              subquery =
+                for i <- items do
+                  if i |> String.contains?(".") do
+                    [prefix, i] = i |> String.split(".")
+                    # if possible, here need to add back the previous and statements
+                    [i, value] =
+                      if i |> String.contains?("=") do
+                        [i, value] = String.split(i, "=")
+                      else
+                        [i, ""]
+                      end
+
+                    ss =
+                      if value != "" do
+                        value
+                      else
+                        ss
+                      end
+
+                    unless i |> String.contains?("_id") do
+                      """
+                      ilike(#{prefix}.#{i}, ^"%#{ss}%")
+                      """
+                    else
+                      if ss == "" do
+                        nil
+                      else
+                        case Integer.parse(ss) do
+                          {ss, _val} ->
+                            """
+                            #{prefix}.#{i} == ^#{ss}
+                            """
+
+                          _ ->
+                            """
+                            ilike(a.#{i}, ^"%#{ss}%")
+                            """
+                        end
+                      end
+                    end
+                  else
+                    [i, value] =
+                      if i |> String.contains?("=") do
+                        [i, value] = String.split(i, "=")
+                      else
+                        [i, ""]
+                      end
+
+                    ss =
+                      if value != "" do
+                        value
+                      else
+                        ss
+                      end
+
+                    unless i |> String.contains?("_id") do
+                      """
+                      ilike(a.#{i}, ^"%#{ss}%")
+                      """
+                    else
+                      case Integer.parse(ss) do
+                        {ss, _val} ->
+                          """
+                          a.#{i} == ^#{ss}
+                          """
+
+                        _ ->
+                          """
+                          ilike(a.#{i}, ^"%#{ss}%")
+                          """
+                      end
+                    end
+                  end
+                end
+                |> Enum.reject(&(&1 == nil))
+                |> Enum.join(" and ")
+                |> IO.inspect()
+
+              if subquery != "" && ss != "" do
                 """
-                |> where([a, b], ilike(b.#{item}, ^"%#{ss}%"))
-                """
-              else
-                """
-                |> where([a], ilike(a.#{item}, ^"%#{ss}%"))
+                |> or_where([a,b,c,d], #{subquery})
                 """
               end
-              |> IO.inspect()
-            end
           end
         end
+        |> Enum.reject(&(&1 == nil))
         |> Enum.join("")
       end
       |> IO.inspect()
@@ -777,22 +863,12 @@ defmodule UnitedWeb.ApiController do
       if preloads == nil do
         preloads = []
       else
-        convert_to_atom = fn data ->
-          if is_map(data) do
-            items = data |> Map.to_list()
-
-            for {x, y} <- items do
-              {String.to_atom(x), String.to_atom(y)}
-            end
-          else
-            String.to_atom(data)
-          end
-        end
+        IO.inspect("preload ")
 
         preloads
         |> Poison.decode!()
+        |> Enum.map(&(&1 |> BluePotion.convert_to_atom()))
         |> IO.inspect()
-        |> Enum.map(&(&1 |> convert_to_atom.()))
 
         # |> Enum.map(&(&1 |> String.to_atom()))
       end

@@ -1696,7 +1696,7 @@ defmodule United.Settings do
         left_join: c in BookCategory,
         on: c.id == bi.book_category_id,
         where: ilike(bi.code, ^"%#{query}%"),
-        preload: [:author, :publisher, :book_category, :book, :book_images],
+        preload: [:loans, :author, :publisher, :book_category, :book, :book_images],
         limit: 10
       )
       |> or_where([bi, b, a, p, c], ilike(b.isbn, ^"%#{query}%"))
@@ -1798,7 +1798,7 @@ defmodule United.Settings do
                 params["book_image.img_url"]
                 |> String.replace("/images/uploads", "")
 
-              United.s3_large_upload(filename)
+              # United.s3_large_upload(filename)
 
               Repo.delete_all(
                 from i in BookImage,
@@ -1815,7 +1815,7 @@ defmodule United.Settings do
                 %{
                   group: "cover",
                   book_id: book_inventory.book.id,
-                  img_url: "https://ap-south-1.linodeobjects.com/damien-bucket#{filename}"
+                  img_url: params["book_image.img_url"]
                 },
                 [:book_id, :img_url, :group]
               )
@@ -1837,6 +1837,136 @@ defmodule United.Settings do
     United.Settings.repopulate_categories()
 
     res
+  end
+
+  def plan do
+    # list_res = exist_on_s3.(bi.img_url)
+
+    #       if list_res != [] do
+    #         United.Settings.BookImage.changeset(bi, %{
+    #           img_url: "/images/uploads#{hd(list_res)}"
+    #         })
+    #         |> Repo.update()
+    #       else
+    #         nil
+    #       end
+    # United.Settings.BookImage.changeset(bi, %{
+    #   img_url: "/images/uploads/bg.jpg"
+    # })
+    # |> Repo.update()
+  end
+
+  def replace_to_default() do
+    q = from(bi in United.Settings.BookImage)
+    bis = Repo.all(q)
+
+    exist_on_s3 = fn fl ->
+      path = "/united/media"
+      fl = String.replace(fl, "/images/uploads", "")
+      url2_list = fl |> String.split(".")
+      take = Enum.count(url2_list)
+      variants = ["webp"]
+
+      for item <- variants do
+        final_url =
+          Enum.take(url2_list, take - 1)
+          |> List.insert_at(take, item)
+          |> Enum.join(".")
+
+        res =
+          "https://damien-bucket.ap-south-1.linodeobjects.com#{final_url |> URI.encode()}"
+          |> HTTPoison.get()
+
+        case res do
+          {:ok, %{body: body, status_code: 200} = resp} ->
+            resp.body
+            p = path <> final_url
+            IO.inspect(p)
+            File.write(p, body)
+            final_url
+
+          _ ->
+            nil
+        end
+      end
+      |> Enum.reject(&(&1 == nil))
+    end
+
+    res =
+      for bi <- bis do
+        case File.read("/united/lib/united-0.1.0/priv/static#{bi.img_url}") do
+          {:error, _reason} ->
+            "#{bi.img_url}"
+
+          _ ->
+            nil
+        end
+      end
+  end
+
+  def convert_to_local_webp() do
+    q = from(bi in United.Settings.BookImage)
+    bis = Repo.all(q)
+
+    for bi <- bis do
+      United.Settings.BookImage.changeset(bi, %{
+        img_url:
+          bi.img_url
+          |> String.replace(
+            "/united/lib/united-0.1.0/priv/static/",
+            ""
+          )
+      })
+      |> Repo.update()
+    end
+  end
+
+  def convert_to_webp() do
+    check = File.exists?(File.cwd!() <> "/media")
+
+    path =
+      if check do
+        File.cwd!() <> "/media"
+      else
+        File.mkdir(File.cwd!() <> "/media")
+        File.cwd!() <> "/media"
+      end
+
+    q = from(bi in BookImage)
+    bis = Repo.all(q)
+
+    for bi <- bis do
+      img_url = Application.app_dir(:united, "priv/static#{bi.img_url}")
+      url2_list = bi.img_url |> String.split(".")
+      take = Enum.count(url2_list)
+      url3 = Enum.take(url2_list, take - 1) |> List.insert_at(take, "webp") |> Enum.join(".")
+      webp_url = Application.app_dir(:united, "priv/static#{url3}")
+      %{before: img_url, after: webp_url}
+      Porcelain.shell("cwebp -q 50 #{img_url} -o #{webp_url}")
+      File.rm_rf(img_url)
+
+      BookImage.changeset(bi, %{
+        img_url: webp_url
+      })
+      |> Repo.update()
+    end
+  end
+
+  def update_from_linode_to_local() do
+    q = from(bi in BookImage)
+    bis = Repo.all(q)
+
+    for bi <- bis do
+      BookImage.changeset(bi, %{
+        img_url:
+          bi.img_url
+          |> String.replace(
+            "https://ap-south-1.linodeobjects.com/damien-bucket/",
+            "/images/uploads/"
+          )
+      })
+      |> Repo.update()
+    end
   end
 
   def update_book_inventory(model, params) do
@@ -1865,11 +1995,11 @@ defmodule United.Settings do
           # |> Repo.update()
 
           if "book_image.img_url" in Map.keys(params) do
-            filename =
-              params["book_image.img_url"]
-              |> String.replace("/images/uploads", "")
+            # filename =
+            #   params["book_image.img_url"]
+            #   |> String.replace("/images/uploads", "")
 
-            United.s3_large_upload(filename)
+            # United.s3_large_upload(filename)
 
             Repo.delete_all(
               from i in BookImage,
@@ -1886,7 +2016,7 @@ defmodule United.Settings do
               %{
                 group: "cover",
                 book_id: book_inventory.book.id,
-                img_url: "https://ap-south-1.linodeobjects.com/damien-bucket#{filename}"
+                img_url: params["book_image.img_url"]
               },
               [:book_id, :img_url, :group]
             )
@@ -2403,15 +2533,15 @@ defmodule United.Settings do
     final_bi =
       for bi <- bi_list do
         # check the code, and create the category
-        prefix =
+        code =
           bi.code |> String.split("") |> Enum.reject(&(&1 == "")) |> Enum.take(2) |> Enum.join("")
 
-        # book_code = Repo.get_by(BookCategory, code: prefix)
-        book_code = Agent.get(Process.whereis(:bc_kv), fn map -> map |> Map.get(prefix) end)
+        # book_code = Repo.get_by(BookCategory, code: code)
+        book_code = Agent.get(Process.whereis(:bc_kv), fn map -> map |> Map.get(code) end)
 
         bcategory =
           if book_code == nil do
-            {:ok, bci} = create_book_category(%{code: prefix})
+            {:ok, bci} = create_book_category(%{code: code})
 
             Agent.update(Process.whereis(:bc_kv), fn map -> Map.put(map, bci.code, bci) end)
             bci
@@ -2577,12 +2707,23 @@ defmodule United.Settings do
 
   def statistic(params) do
     title = Map.get(params, "title", "loan_history_by_month")
+
+    year = Map.get(params, "year", "2022")
+    syear = NaiveDateTime.from_erl!({{String.to_integer(year), 1, 1}, {0, 0, 0}})
+    eyear = Timex.shift(syear, years: 1)
+
+    sdate = Map.get(params, "sdate", NaiveDateTime.utc_now() |> Timex.shift(months: -1))
+    edate = Map.get(params, "edate", NaiveDateTime.utc_now())
+
     months = ~S(JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC) |> String.split(" ")
 
     case title do
       "all_loans" ->
         q =
           from l in Loan,
+            where:
+              l.inserted_at > ^syear and
+                l.inserted_at < ^eyear,
             select: %{has_return: l.has_return, count: count(l.has_return)},
             group_by: [l.has_return]
 
@@ -2591,7 +2732,9 @@ defmodule United.Settings do
       "member_join_by_month" ->
         q =
           from(l in Member,
-            where: l.is_approved == ^true,
+            where:
+              l.is_approved == ^true and l.inserted_at > ^syear and
+                l.inserted_at < ^eyear,
             select: %{count: count(l.id)},
             select_merge: %{
               month: fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)
@@ -2614,7 +2757,9 @@ defmodule United.Settings do
       "loan_history_by_month" ->
         q =
           from(l in Loan,
-            where: l.has_return == ^true,
+            where:
+              l.has_return == ^true and l.inserted_at > ^syear and
+                l.inserted_at < ^eyear,
             select: %{count: count(l.id)},
             select_merge: %{
               month: fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)
@@ -2639,7 +2784,9 @@ defmodule United.Settings do
           from(l in Loan,
             join: m in Member,
             on: l.member_id == m.id,
-            where: l.has_return == ^true,
+            where:
+              l.has_return == ^true and l.inserted_at > ^syear and
+                l.inserted_at < ^eyear,
             select: %{count: count(m.name), member: m.name},
             select_merge: %{
               month: fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)
@@ -2650,12 +2797,70 @@ defmodule United.Settings do
 
         Repo.all(q)
 
+      "loan_history_by_member_week" ->
+        # Timex.iso_week(Date.utc_today |> Timex.shift(weeks: -1)) 
+
+        append_week_number = fn map ->
+          {_year, week} =
+            Timex.iso_week(map |> Map.get(:inserted_at) |> Timex.shift(days: 2, hours: 6))
+
+          %{week_number: week} |> Map.merge(map)
+        end
+
+        q =
+          from(l in Loan,
+            join: m in Member,
+            on: l.member_id == m.id,
+            where: l.has_returned == ^true,
+            where:
+              l.inserted_at > ^sdate and
+                l.inserted_at < ^edate,
+            select: %{member: m.name, inserted_at: l.inserted_at}
+          )
+
+        data =
+          Repo.all(q)
+          |> Enum.map(&(&1 |> append_week_number.()))
+          |> Enum.group_by(& &1.week_number)
+
+        res = Map.keys(data)
+
+        hd = List.first(res)
+        # tl = List.last(res)
+        tl = hd + 3
+
+        for r <- hd..tl do
+          count =
+            if data[r] != nil do
+              data[r] |> Enum.count()
+            else
+              0
+            end
+
+          l =
+            if data[r] != nil do
+              list = data[r] |> Enum.group_by(& &1.member)
+
+              l_keys = Map.keys(list)
+
+              for l_key <- l_keys do
+                %{member: l_key, count: Enum.count(list[l_key])}
+              end
+            else
+              []
+            end
+
+          %{week_number: r, count: count, list: l}
+        end
+
       "loan_history_by_member" ->
         q =
           from(l in Loan,
             join: m in Member,
             on: l.member_id == m.id,
-            where: l.has_return == ^true,
+            where:
+              l.has_return == ^true and l.inserted_at > ^syear and
+                l.inserted_at < ^eyear,
             select: %{count: count(m.name), member: m.name},
             group_by: [m.name],
             order_by: [desc: count(m.name)]
@@ -2670,13 +2875,61 @@ defmodule United.Settings do
             on: l.book_inventory_id == bi.id,
             left_join: c in BookCategory,
             on: c.id == bi.book_category_id,
-            where: l.has_return == ^true,
+            where:
+              l.has_return == ^true and l.inserted_at > ^syear and
+                l.inserted_at < ^eyear,
             select: %{count: count(c.code), code: c.code, category: c.name},
             group_by: [c.code, c.id],
             order_by: [desc: count(c.code)]
           )
 
         Repo.all(q)
+
+      "loan_history_by_category_month" ->
+        q =
+          from(l in Loan,
+            left_join: bi in BookInventory,
+            on: l.book_inventory_id == bi.id,
+            left_join: c in BookCategory,
+            on: c.id == bi.book_category_id,
+            where: l.has_return == ^true,
+            where:
+              l.inserted_at > ^syear and
+                l.inserted_at < ^eyear,
+            select: %{count: count(c.code), code: c.code, category: c.name},
+            select_merge: %{
+              month: fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at)
+            },
+            group_by: [
+              fragment("to_char(date_trunc('month', ?), 'MON')", l.inserted_at),
+              c.code,
+              c.id
+            ],
+            order_by: [desc: count(c.code)]
+          )
+
+        categories = United.Settings.list_book_categories()
+
+        res = Repo.all(q) |> Enum.group_by(& &1.month)
+
+        for cat <- categories do
+          data =
+            for month <- months do
+              category_data = res[month]
+
+              with true <- category_data != nil,
+                   cat_res <-
+                     Enum.filter(category_data, &(&1.code == cat.code)) |> List.first(),
+                   true <- cat_res != nil do
+                cat_res |> Map.take([:month, :count])
+              else
+                _ ->
+                  %{month: month, count: 0}
+              end
+            end
+
+          %{category: cat.name, code: cat.code, data: data}
+        end
 
       _ ->
         %{}
