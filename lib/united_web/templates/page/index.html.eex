@@ -37,7 +37,7 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
         </nav>
         <nav>
           <div class="pb-2">
-            <form id="searchz" class="my-2 mx-lg-0 mx-2 position-relative d-flex align-items-center">
+            <form onchange="saveSearchQuery()" action="/search" method="get" id="searchz" class="my-2 mx-lg-0 mx-2 position-relative d-flex align-items-center">
               <div class=" end-0 position-absolute">
                 <i class="btn fa fa-qrcode px-1 text-success " onclick="
             navigateTo('/loans');
@@ -163,10 +163,17 @@ QrScanner.WORKER_PATH = '/js/qr-scanner-worker.min.js';
 <span id="sign-in-button"></span>
 <div id="recaptcha-container"></div>
 <script type="text/javascript">
+
 var query_string
 var idleTime = 0
 var interval = 1000
 var startTimer = false
+
+
+function saveSearchQuery(){
+ localStorage.setItem("public_search", $("input[name='query']").val()) 
+}
+
 $("input[name='query']").on("focusout", () => {
   setTimeout(() => {
     $("input[name='query']").val("")

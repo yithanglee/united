@@ -14,17 +14,19 @@ defmodule United.Settings.BookInventory do
     has_many(:loans, United.Settings.Loan)
     field :code, :string
 
+    field :is_missing, :boolean, default: false
+
     timestamps()
   end
 
   @doc false
   def changeset(book_inventory, attrs) do
     book_inventory
-    |> cast(attrs, [:book_upload_id, :code, :book_category_id])
+    |> cast(attrs, [:is_missing, :book_upload_id, :code, :book_category_id])
   end
 
   def update_changeset(book_inventory, attrs) do
     book_inventory
-    |> cast(attrs, [:book_upload_id, :book_id, :code, :book_category_id])
+    |> cast(attrs, [:is_missing, :book_upload_id, :book_id, :code, :book_category_id])
   end
 end
