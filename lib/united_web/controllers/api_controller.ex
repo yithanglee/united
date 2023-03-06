@@ -903,9 +903,39 @@ defmodule UnitedWeb.ApiController do
         preloads
       )
 
+    %{data: data, draw: _draw, recordsFiltered: _filtered, recordsTotal: _total} = json
+
+    json = Map.put(json, :data, format_json(data)) |> IO.inspect()
+
     conn
     |> put_resp_content_type("application/json")
     |> send_resp(200, Jason.encode!(json))
+  end
+
+  def format_json(data) do
+    for item <- data do
+      keys = Map.keys(item)
+
+      appendJson = fn k, map ->
+        value = map |> Map.get(k)
+
+        with true <- k in ["failed_lines", :failed_lines],
+             true <- value != nil do
+          case Jason.decode(value) do
+            {:ok, nmap} ->
+              Map.put(map, k, nmap) |> IO.inspect()
+
+            _ ->
+              Map.put(map, k, value)
+          end
+        else
+          _ ->
+            Map.put(map, k, value)
+        end
+      end
+
+      Enum.reduce(keys, item, fn x, acc -> appendJson.(x, acc) end)
+    end
   end
 
   def delete_data(conn, params) do
