@@ -1,101 +1,109 @@
-<style type="text/css">
-#profile_card {
-  background: url('/images/bg.jpg') no-repeat;
-  background-size: cover;
-  color: white;
-  background-blend-mode: multiply;
-  background-color: #0000008a;
-  background-attachment: fixed;
-}
-.ark .list-group-item {
-  position: relative;
-  display: block;
-  padding: .5rem 1rem;
-  color: white;
-  text-decoration: none;
-  background-color: #fff0;
-  border: 0px;
-}
-</style>
-<div class="ps-3 d-none d-lg-flex flex-column justify-content-center align-items-start" style="height: 10vh;">
-  <span class="fs-2">Ark Library</span>
-</div>
-<div class="ark list-group d-lg-block d-none rounded">
-  <a href="/admin/dashboard"  class="navi list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-tachometer-alt"></i>
-    </span>
-    <span class="ps-2"> Dashboard</span>
-  </a>
-
-  <a href="/admin/loans"  class="navi list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-history"></i>
-    </span>
-    <span class="ps-2"> Loans</span>
-  </a>
-  <a href="/admin/books"  class="navi list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-book"></i>
-    </span>
-    <span class="ps-2"> Books</span>
-  </a>
-
-  <a href="/admin/members"  class="navi list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-users"></i>
-    </span>
-    <span class="ps-2"> Members</span>
-  </a>
-
-  <a href="/admin/uploads"  class="navi list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-file-upload"></i>
-    </span>
-    <span class="ps-2"> Upload</span>
-  </a>
-  
-  <a href="/admin/scan" class="navi list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-camera"></i>
-    </span>
-    <span class="ps-2"> Scan</span>
-  </a>
-    
-  <a href="javascript:void(0);" onclick="checkInMember()" class="list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-qrcode"></i>
-    </span>
-    <span class="ps-2"> Check In Member</span>
-  </a>
-    
-  <a href="javascript:void(0);" onclick="checkOutMember()" class="list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-qrcode"></i>
-    </span>
-    <span class="ps-2"> Check Out Member</span>
-  </a>
-  <a href="#" class="list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-wrench"></i>
-    </span>
-    <span class="ps-2"> Settings</span>
-  </a>
-  <a href="/admin/logout" class="list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-sign-out-alt"></i>
-    </span>
-    <span class="ps-2"> Logout</span>
-  </a>
-
-  
-  <a href="/admin/support" class="navi list-group-item list-group-item-action">
-    <span class="badge bg-primary rounded-pill">
-      <i class="fa fa-sm fa-info"></i>
-    </span>
-    <span class="ps-2"> Support</span>
-  </a>
-    
-
-
+<!-- start: sidebar -->
+<div class="sidebar p-2 py-md-3 @@cardClass">
+  <div class="container-fluid">
+    <!-- sidebar: title-->
+    <div class="title-text d-flex align-items-center mb-4 mt-1">
+      <h4 class="sidebar-title mb-0 flex-grow-1"><span class="sm-txt">A</span><span>RK Library</span></h4>
+      <div class="dropdown morphing scale-left">
+        <a class="dropdown-toggle more-icon" href="#" role="button" data-bs-toggle="dropdown"><i class="fa fa-ellipsis-h"></i></a>
+        <ul class="dropdown-menu shadow border-0 p-2 mt-2" data-bs-popper="none">
+          <li class="fw-bold px-2">Quick Actions</li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li><a class="dropdown-item" href="/">Landing page</a></li>
+        </ul>
+      </div>
+    </div>
+    <!-- sidebar: menu list -->
+    <div class="main-menu flex-grow-1">
+      <ul class="menu-list">
+        <li class="divider py-2 lh-sm"><span class="small">MAIN</span><br> <small class="text-muted">Kajang Chinese Methodist Church </small></li>
+        <li class="collapsed">
+          <a class="m-link collapsed" data-bs-toggle="collapse" data-bs-target="#my_dashboard" href="#" aria-expanded="false">
+            <i class="fa fa-home"> </i>
+            <span class="ms-2">My Dashboard</span>
+            <span class="arrow fa fa-angle-right ms-auto text-end"></span>
+          </a>
+          <!-- Menu: Sub menu ul -->
+          <ul class="sub-menu collapse" id="my_dashboard">
+            <li><a class="ms-link navi" href="/admin/dashboard">Admins</a></li>
+            <li><a class="ms-link navi" href="/admin/statistic">Statistic</a></li>
+          </ul>
+        </li>
+        <li class="collapsed">
+          <a class="m-link collapsed " data-bs-toggle="collapse" data-bs-target="#loan-management" href="#" aria-expanded="false">
+            <i class="fa fa-history"> </i>
+            <span class="ms-2">Loans</span>
+            <span class="arrow fa fa-angle-right ms-auto text-end"></span>
+          </a>
+          <!-- Menu: Sub menu ul -->
+          <ul class="sub-menu collapse " id="loan-management">
+            <li><a class="ms-link navi" href="/admin/loans">Loans</a></li>
+            <li><a class="ms-link navi" href="/admin/reminders">Reminders</a></li>
+            <li><a class="ms-link navi" href="/admin/reservations">Reservations</a></li>
+            <li><a class="ms-link navi" href="/admin/histories">History</a></li>
+          </ul>
+        </li>
+        <li class="collapsed">
+          <a class="m-link collapsed " data-bs-toggle="collapse" data-bs-target="#book-management" href="#" aria-expanded="false">
+            <i class="fa fa-book"> </i>
+            <span class="ms-2">Books</span>
+            <span class="arrow fa fa-angle-right ms-auto text-end"></span>
+          </a>
+          <!-- Menu: Sub menu ul -->
+          <ul class="sub-menu collapse " id="book-management">
+            <li><a class="ms-link navi" href="/admin/books">Books</a></li>
+            <li><a class="ms-link navi" href="/admin/categories">Categories</a></li>
+            <li><a class="ms-link navi" href="/admin/scan">Scan</a></li>
+            <li><a class="ms-link navi" href="/admin/uploads">Upload</a></li>
+          </ul>
+        </li>
+        <li class="collapsed">
+          <a class="m-link collapsed " data-bs-toggle="collapse" data-bs-target="#member-management" href="#" aria-expanded="false">
+            <i class="fa fa-users"> </i>
+            <span class="ms-2">Users</span>
+            <span class="arrow fa fa-angle-right ms-auto text-end"></span>
+          </a>
+          <!-- Menu: Sub menu ul -->
+          <ul class="sub-menu collapse " id="member-management">
+            <li><a class="ms-link navi" href="/admin/members">Members</a></li>
+          </ul>
+        </li>
+        <li class="collapsed">
+          <a class="m-link collapsed " data-bs-toggle="collapse" data-bs-target="#settings-management" href="#" aria-expanded="false"> 
+            <i class="fa fa-cogs"> </i>
+            <span class="ms-2">Settings</span>
+            <span class="arrow fa fa-angle-right ms-auto text-end"></span>
+          </a>
+          <!-- Menu: Sub menu ul -->
+          <ul class="sub-menu collapse " id="settings-management">
+            <li><a class="ms-link navi" href="/admin/holidays">Holidays</a></li>
+            <li><a class="ms-link navi" href="/admin/home_layout">Website Home Layout</a></li>
+            <li><a class="ms-link navi" href="/admin/home_books">Landing Page Books</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <span id="Changelog"></span>
+    <!-- sidebar: footer link -->
+    <!-- sidebar: footer link -->
+    <ul class="menu-list nav navbar-nav flex-row text-center menu-footer-link">
+      <li class="nav-item flex-fill p-2">
+        <a class="d-inline-block w-100 color-400" href="javascript:void(0);" onclick="checkInMember()"  title="Check In">
+          <i class="fa fa-qrcode fa-2x text-success"></i>
+        </a>
+      </li>
+      <li class="nav-item flex-fill p-2">
+        <a class="d-inline-block w-100 color-400" href="javascript:void(0);"  onclick="checkOutMember()"  title="Check Out">
+          <i class="fa fa-qrcode fa-2x text-danger"></i>
+        </a>
+      </li>
+      <li class="nav-item flex-fill p-2">
+        <a class="d-inline-block w-100 color-400" href="/admin/logout" title="sign-out">
+          <i class="fa fa-sign-out fa-2x"></i>
+        </a>
+      </li>
+    </ul>
+  </div>
 </div>

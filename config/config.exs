@@ -43,35 +43,27 @@ config :blue_potion,
     domain_name: "localhost"
   }
 
+config :timex, Timex.Gettext, default_locale: "en"
+
 config :united, :facebook,
   app_token: System.get_env("APP_TOKEN"),
   app_secret: System.get_env("APP_SECRET"),
   app_id: System.get_env("APP_ID")
 
+config :united, :firebase, api_key: System.get_env("G_API_KEY")
+
 config :united, United.Scheduler,
   jobs: [
-    {"05 4 * * 7",      {United, :loan_reminder_check, ["1"]}},
-    {"05 4 * * 3",      {United, :loan_reminder_check, ["1"]}},
-    {"05 4 * * 1",      {United, :loan_reminder_check, ["1"]}},
-    {"06 4 * * *",      {United, :loan_reminder_check, ["2"]}},
-    {"05 4 * * *",      {United, :loan_reminder_check, ["1"]}},
-    {"03 4 * * *",      {United, :loan_reminder_check, ["checks 51"]}},
-    
-    {"55 0 * * 7",      {United, :loan_reminder, ["1"]}},
-    {"55 0 * * 3",      {United, :loan_reminder, ["1"]}},
-    {"55 0 * * 1",      {United, :loan_reminder, ["1"]}},
+    {"05 4 * * 7", {United, :loan_reminder_check, ["1"]}},
+    {"05 4 * * 3", {United, :loan_reminder_check, ["1"]}},
+    {"05 4 * * 1", {United, :loan_reminder_check, ["1"]}},
+    {"06 4 * * *", {United, :loan_reminder_check, ["2"]}},
+    {"05 4 * * *", {United, :loan_reminder_check, ["1"]}},
+    {"03 4 * * *", {United, :loan_reminder_check, ["checks 51"]}},
+    {"55 0 * * 7", {United, :loan_reminder, ["1"]}},
+    {"55 0 * * 3", {United, :loan_reminder, ["1"]}},
+    {"55 0 * * 1", {United, :loan_reminder, ["1"]}}
   ]
-
-
-config :ex_aws,
-  access_key_id: "E5TQQRK798E01MT3RPRP",
-  secret_access_key: "W1U0AMNppPkmPwKrmUoFcK6MLqFzDlK950mG4o05",
-  region: "ap-southeast-1",
-  json_codec: Jason,
-  bucket_name: "cac-bucket",
-  pat: "44675ea568c8d8605fe7af0bf7ce66de28f751f25cc62b87fff970080f31b31f"
-
-config :ex_aws, :s3, host: "ap-south-1.linodeobjects.com"
 
 config :joken,
   rs256: [

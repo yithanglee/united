@@ -57,18 +57,41 @@ defmodule UnitedWeb.ApiController do
             )
 
         "scan_image" ->
-          image =
-            open(params["image"].path)
-            |> resize("1200x1200")
-            |> save
-            |> IO.inspect()
+          if params["images"] != nil do
+            keys = Map.keys(params["images"])
 
-          a =
-            File.read!(image.path)
-            |> Base.encode64()
-            |> IO.inspect()
+            images =
+              for key <- keys do
+                item = params["images"][key]
 
-          Elixir.Task.start_link(United, :inspect_image, [a])
+                image =
+                  open(item.path)
+                  |> resize("1200x1200")
+                  |> save
+                  |> IO.inspect()
+
+                a =
+                  File.read!(image.path)
+                  |> Base.encode64()
+                  |> IO.inspect()
+              end
+
+            Elixir.Task.start_link(United, :inspect_images, [images])
+          else
+            image =
+              open(params["image"].path)
+              |> resize("1200x1200")
+              |> save
+              |> IO.inspect()
+
+            a =
+              File.read!(image.path)
+              |> Base.encode64()
+              |> IO.inspect()
+
+            Elixir.Task.start_link(United, :inspect_image, [a])
+          end
+
           %{status: "ok"}
 
         "strong_search" ->

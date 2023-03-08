@@ -9,6 +9,30 @@ defmodule United do
   # import Mogrify
   use Joken.Config
 
+  def firebase(uid \\ "xCzTLRVIZ8VKQjHbDy96cMl04yJ3") do
+    api_key = Application.get_env(:united, :firebase)[:api_key]
+    url = "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=#{api_key}"
+
+    url =
+      "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=#{api_key}"
+
+    headers = [
+      {"content-type", "application/json"}
+    ]
+
+    case HTTPoison.post(
+           url,
+           Jason.encode!(%{returnSecureToken: true, token: "damien.united.kjcmc"}),
+           headers
+         ) do
+      {:ok, %{body: body} = resp} ->
+        body |> Jason.decode!()
+
+      _ ->
+        nil
+    end
+  end
+
   def loan_reminder_check(string) do
     IO.inspect("checks #{string}")
   end
@@ -67,6 +91,70 @@ defmodule United do
       IO.inspect("gtoken_kv kv created")
     else
       IO.inspect("gtoken_kv kv exist")
+    end
+  end
+
+  def inspect_images(b64_images) do
+    ensure_gtoken_kv_created()
+    pid = Process.whereis(:gtoken_kv)
+
+    token = Agent.get(pid, fn map -> map["token"] end)
+
+    headers = [
+      {"content-type", "application/json"},
+      {"Authorization", "Bearer #{token}"}
+    ]
+
+    url = "https://vision.googleapis.com/v1/images:annotate"
+
+    images =
+      for b64_image <- b64_images do
+        %{
+          image: %{content: b64_image},
+          features: [%{type: "TEXT_DETECTION"}]
+        }
+      end
+
+    body =
+      %{
+        requests: images
+      }
+      |> Jason.encode!()
+
+    case HTTPoison.post(url, body, headers) do
+      {:ok, resp} ->
+        d =
+          resp.body
+          |> Jason.decode!()
+
+        d2 =
+          d
+          |> Map.get("responses")
+
+        if d2 != nil do
+          d3s =
+            for dz <- d2 do
+              dz
+              |> Kernel.get_in(["fullTextAnnotation", "text"])
+            end
+
+          UnitedWeb.Endpoint.broadcast("user:lobby", "decoded_images", %{
+            data: d3s,
+            b64_image: b64_images
+          })
+        else
+          token = get_gtoken()
+          Agent.update(pid, fn map -> Map.put(map, "token", token) end)
+          inspect_images(b64_images)
+        end
+
+      {:error, reason} ->
+        IO.inspect(reason)
+
+        UnitedWeb.Endpoint.broadcast("user:lobby", "decoded_images", %{
+          data: "",
+          b64_images: b64_images
+        })
     end
   end
 
